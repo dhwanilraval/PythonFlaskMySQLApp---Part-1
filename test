@@ -1,0 +1,33 @@
+1. Blockers don't respect workstream boundaries
+Control plane integration work (IaC, automation pipelines, the Zephyr platform itself) looks clean in isolation. But the reason it stalls is almost always a platform-side or compliance-side problem:
+
+Database can't adopt the IaC module because a MariaDB version freeze is in place pending a security review
+Optimization can't relocate workloads because Network hasn't completed the segment routing work
+ZephyrAI can't automate cert lifecycle because Compliance Reporting hasn't connected the certificate inventory to Zephyr Assurance yet
+
+If ESC only sees control plane status, they see a green light while the actual delivery is amber or red. The control plane looks fine — the integration work is proceeding — but nothing is landing in production because platform teams are blocked. The steering committee can't intervene on something they can't see.
+
+2. ESC has the authority to unblock platform issues; your program team doesn't
+Platform teams report into different towers — Database into one VP, Network into another, Middleware into a third. When Database's SQL Server team hits a vendor dependency or a competing BAU priority, you cannot escalate that yourself. The ESC sponsor can. But only if they know it's happening.
+The blocker belongs in the ESC room specifically because the people who can call the right tower lead and say "your team is on the critical path for Zephyr, what do you need to unblock" are sitting at that table.
+
+3. CMP status is where the business value actually lands
+The ESC isn't there to govern how well the platform engineering team writes Terraform. They're there to govern whether RBC is getting the $20.5M savings and the regulatory defensibility that justified the program.
+Those outcomes live in Compliance Reporting (can we produce audit evidence when regulators ask?) and Optimization (are we reclaiming capacity and reducing cost?). If ESC only hears about control plane integration progress, they're watching the means, not the ends. That's a governance failure — the committee is left unable to answer the question their own executives will ask: "Is Zephyr delivering?"
+
+4. Platform status is the leading indicator of program risk
+Control plane work is often further ahead than platform adoption. The IaC modules exist, the pipeline is working — but only 2 of 5 platforms have adopted it. If ESC doesn't see per-platform adoption status, they can't distinguish "the program is delivering" from "the program built something nobody is using."
+Per-platform status is also what surfaces the fragility of the program's dependency chain. Zephyr's benefits are multiplicative across platforms — ZephyrAI automating vuln patching only works if IaC has codified the estate, which only works if each platform team has committed their configs. One platform stalling creates a cascade. ESC needs to see that.
+
+5. The "only show control plane" instinct protects the wrong thing
+The reason programs sometimes want to show ESC only the shiny integration work is that platform status and compliance blockers are messier, more political, and more likely to generate uncomfortable questions. That's precisely why they need to be in the room.
+Steering committees that only see the "what's going well" view start to lose trust in the program lead when reality eventually becomes visible — and it always does, usually at the worst moment (a missed milestone, a regulatory inquiry, a budget conversation). Showing the honest picture — including where platforms are struggling and what's blocking compliance — builds more credibility with a steering committee than clean green decks do.
+
+The framing to use with stakeholders who push back
+If someone argues "ESC doesn't need all that detail, just give them the control plane view," the response is:
+
+"The control plane view tells ESC how Zephyr is being built. The platform and CMP view tells them whether Zephyr is working. We need both because the investment decision was based on outcomes, not on build activity."
+
+And specifically on blockers:
+
+"The only things worth escalating to ESC are the blockers that can't be resolved below ESC level. Platform-side and compliance-side blockers are exactly that — they sit in other towers, outside the program team's authority. If we don't surface them here, they don't get resolved."
