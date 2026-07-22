@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Rbc Cloud Capability View",
+  "schemaVersion": 1,
+  "description": "Leadership-facing capability maturity view for RBC Cloud platforms — domain-grouped landscape and matrix views, KPI band, per-platform maturity ladders and detail drawer. Sample data mockup.",
+  "mcpTools": [],
+  "mcpServerNames": []
+}
+</script>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RBC Cloud — Capability View</title>
+<style>
+  :root{
+    --rbc-blue:#005DAA;--rbc-blue-dark:#003168;--rbc-gold:#FEDF01;
+    --bg:#f4f6f9;--panel:#ffffff;--ink:#0f1b2d;--ink-soft:#54647a;--line:#e3e8ef;
+    --shadow:0 1px 2px rgba(16,30,54,.06),0 8px 24px rgba(16,30,54,.06);
+    --full:#1f9d57;--partial:#e8a417;--planned:#4a9de0;--none:#cdd5df;
+    --m1:#c8d0da;--m2:#f2b134;--m3:#4a9de0;--m4:#1f7a4d;--m5:#0b5c8a;
+  }
+  [data-theme="dark"]{
+    --bg:#0c1420;--panel:#131f30;--ink:#eef3f9;--ink-soft:#93a4ba;--line:#22344b;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+    --full:#3fbd77;--partial:#e8b23f;--planned:#5aa9e6;--none:#33435a;--m1:#3a4658;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+
+  header{background:linear-gradient(120deg,var(--rbc-blue-dark),var(--rbc-blue));color:#fff;
+    padding:22px 32px;position:sticky;top:0;z-index:50;box-shadow:0 4px 20px rgba(0,49,104,.25)}
+  .head-row{display:flex;align-items:center;gap:16px;max-width:1560px;margin:0 auto}
+  .logo{width:40px;height:40px;border-radius:9px;background:var(--rbc-gold);color:var(--rbc-blue-dark);
+    display:grid;place-items:center;font-weight:800;font-size:18px;flex:none}
+  .title h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.2px}
+  .title p{margin:2px 0 0;font-size:12.5px;opacity:.85}
+  .head-spacer{flex:1}
+  .asof{font-size:12px;opacity:.85;text-align:right;line-height:1.5}
+  .toggle{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;
+    border-radius:8px;padding:8px 12px;font-size:12.5px;cursor:pointer;font-weight:600}
+  .toggle:hover{background:rgba(255,255,255,.24)}
+
+  main{max-width:1560px;margin:0 auto;padding:24px 32px 60px}
+
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .kpi .lab{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-soft);font-weight:600}
+  .kpi .val{font-size:29px;font-weight:750;margin-top:6px;letter-spacing:-1px;display:flex;align-items:baseline;gap:5px}
+  .kpi .val small{font-size:14px;font-weight:600;color:var(--ink-soft)}
+  .kpi .sub{font-size:11.5px;color:var(--ink-soft);margin-top:4px}
+  .kpi .bar{height:6px;border-radius:4px;background:var(--line);margin-top:10px;overflow:hidden}
+  .kpi .bar>i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--planned),var(--full))}
+
+  /* change bar */
+  .changebar{display:flex;align-items:center;gap:20px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);
+    border-left:4px solid var(--full);border-radius:12px;padding:12px 18px;margin-bottom:20px;box-shadow:var(--shadow)}
+  .cb-left{display:flex;align-items:center;gap:11px}
+  .cb-dot{width:9px;height:9px;border-radius:50%;background:var(--full);box-shadow:0 0 0 4px rgba(31,157,87,.18);flex:none}
+  .cb-left strong{font-size:13.5px;display:block}
+  .cb-sub{font-size:11.5px;color:var(--ink-soft)}
+  .cb-stats{display:flex;gap:20px;flex:1;flex-wrap:wrap;font-size:12.5px;color:var(--ink-soft)}
+  .cb-stats b{color:var(--ink);font-size:15px;font-weight:800;margin-right:2px}
+  .cb-btn{border:1px solid var(--rbc-blue);background:transparent;color:var(--rbc-blue);border-radius:9px;
+    padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer}
+  .cb-btn:hover{background:var(--rbc-blue);color:#fff}
+
+  /* delta badges */
+  .delta{font-size:9.5px;font-weight:800;color:var(--full);background:rgba(31,157,87,.12);border-radius:5px;
+    padding:1px 5px;margin-left:6px;vertical-align:middle;letter-spacing:.3px}
+  .delta.dnew{color:var(--rbc-blue);background:rgba(0,93,170,.12)}
+
+  /* changelog */
+  .clog{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:8px 4px}
+  .clog-head{padding:16px 20px 4px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+  .clog-head h2{margin:0;font-size:17px;letter-spacing:-.2px}
+  .clog-meta{font-size:12.5px;color:var(--ink-soft)}
+  .clog-sec{padding:8px 8px 14px}
+  .clog-t{font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;font-weight:800;color:var(--ink-soft);
+    padding:14px 14px 8px;display:flex;align-items:center;gap:8px}
+  .tg{font-size:10px;font-weight:800;border-radius:5px;padding:2px 7px}
+  .tg-new{background:rgba(0,93,170,.12);color:var(--rbc-blue)}
+  .tg-up{background:rgba(31,157,87,.14);color:var(--full)}
+  .clog-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 14px;
+    border-radius:10px;cursor:pointer;border:1px solid transparent}
+  .clog-row:hover{background:var(--bg);border-color:var(--line)}
+  .clog-row.col{flex-direction:column;align-items:stretch;gap:9px}
+  .cr-top{display:flex;justify-content:space-between;align-items:center}
+  .cr-main{display:flex;align-items:center;gap:11px}
+  .cr-dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .cr-dot.dn{background:var(--rbc-blue)}.cr-dot.du{background:var(--full)}
+  .cr-main b{font-size:13.5px}
+  .cr-sub{font-size:11.5px;color:var(--ink-soft);margin-left:8px}
+  .cr-right{display:flex;align-items:center;gap:10px}
+  .cr-delta{font-size:11.5px;color:var(--ink-soft);font-weight:600}
+  .cr-delta.up{color:var(--full);font-weight:800}
+  .upgrades{display:flex;flex-wrap:wrap;gap:8px;padding-left:19px}
+  .upgrade{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;background:var(--bg);
+    border:1px solid var(--line);border-radius:8px;padding:4px 9px}
+  .upgrade .arr{color:var(--ink-soft);font-weight:800}
+  .dpill{font-size:10px;font-weight:700;border:1px solid;border-radius:5px;padding:1px 6px;text-transform:uppercase;letter-spacing:.2px}
+
+  /* ---- architecture simplification ---- */
+  .sig{font-size:11px;font-weight:800;border:1px solid;border-radius:20px;padding:2px 9px;letter-spacing:.3px;white-space:nowrap}
+  .sigdot{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:4px;color:#fff;font-size:9px;
+    font-weight:800;margin-right:7px;vertical-align:middle;flex:none}
+  .sigkey{font-size:11px;font-weight:800;border-radius:5px;padding:1px 6px;margin:0 1px}
+  /* high-value capability star */
+  .hvstar{position:absolute;top:-4px;left:-4px;font-size:11px;line-height:1;color:#ffd23f;
+    text-shadow:0 0 1px rgba(0,0,0,.55),0 1px 1px rgba(0,0,0,.4);pointer-events:none}
+  .gseg span.seghv{box-shadow:0 0 0 1.5px #f5b301}
+  .hvstar-lg{color:#f5b301;font-size:13px;text-shadow:0 0 1px rgba(0,0,0,.3)}
+  th.sub .hvs{color:#f5b301}
+  .sig-why{font-size:13px;line-height:1.5;color:var(--ink-soft);margin-top:12px}
+  .archwrap{}
+  .ahead h2{margin:0;font-size:18px;letter-spacing:-.2px}
+  .ahead p{margin:4px 0 0;font-size:13px;color:var(--ink-soft);max-width:820px}
+  .atiles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 12px}
+  .atile{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 18px;box-shadow:var(--shadow)}
+  .at-h{display:flex;align-items:center;gap:10px}
+  .at-verb{font-size:11.5px;color:var(--ink-soft);font-weight:600}
+  .at-n{font-size:30px;font-weight:800;letter-spacing:-1px;margin-top:8px}
+  .at-n small{font-size:14px;font-weight:600;color:var(--ink-soft);margin-left:3px}
+  .at-p{font-size:11.5px;color:var(--ink-soft)}
+  .sbar{display:flex;height:12px;border-radius:8px;overflow:hidden;margin-bottom:22px;border:1px solid var(--line)}
+  .sbar span{height:100%}
+  .board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start}
+  .bcol{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+  .bcol-head{color:#fff;font-weight:800;font-size:12.5px;letter-spacing:.3px;padding:11px 14px;display:flex;
+    align-items:center;gap:8px;position:sticky;top:0}
+  .bc-count{margin-left:auto;background:rgba(255,255,255,.25);border-radius:20px;padding:1px 9px;font-size:12px}
+  .bcol-body{padding:10px;display:flex;flex-direction:column;gap:9px;max-height:1400px}
+  .scard{border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg);transition:transform .1s}
+  .scard:hover{transform:translateY(-1px);border-color:var(--ink-soft)}
+  .sc-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .sc-top b{font-size:12.5px;font-weight:700}
+  .sc-tl{font-size:10.5px;font-weight:700;color:var(--ink-soft);white-space:nowrap}
+  .sc-sub{font-size:10.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
+  .sc-why{font-size:11.5px;color:var(--ink-soft);line-height:1.45;margin-top:6px}
+  .sc-empty{color:var(--ink-soft);font-size:12px;padding:14px;text-align:center}
+
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+  .search{flex:1;min-width:200px;position:relative}
+  .search input{width:100%;padding:10px 14px 10px 36px;border:1px solid var(--line);border-radius:10px;
+    background:var(--panel);color:var(--ink);font-size:14px}
+  .search svg{position:absolute;left:11px;top:11px;opacity:.5}
+  .chip{border:1px solid var(--line);background:var(--panel);color:var(--ink-soft);border-radius:20px;
+    padding:7px 14px;font-size:12.5px;cursor:pointer;font-weight:600;white-space:nowrap}
+  .chip.active{background:var(--rbc-blue);border-color:var(--rbc-blue);color:#fff}
+  .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{border:0;background:var(--panel);color:var(--ink-soft);padding:9px 14px;font-size:12.5px;cursor:pointer;font-weight:600}
+  .seg button.active{background:var(--rbc-blue);color:#fff}
+  .lnk{border:1px solid var(--line);background:var(--panel);color:var(--rbc-blue);border-radius:9px;
+    padding:9px 13px;font-size:12.5px;cursor:pointer;font-weight:700}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:16px;font-size:12px;color:var(--ink-soft)}
+  .legend b{color:var(--ink);font-weight:650}
+  .lg{display:flex;align-items:center;gap:6px}
+  .sw{width:16px;height:16px;border-radius:4px;display:grid;place-items:center;font-size:11px;color:#fff;font-weight:800;flex:none}
+  .hint{font-size:12px;color:var(--ink-soft);margin-bottom:14px}
+  .hint b{color:var(--rbc-blue)}
+
+  /* matrix */
+  .matrix{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:12px}
+  th,td{padding:7px 6px;text-align:center;border-bottom:1px solid var(--line)}
+  thead th{background:var(--bg);color:var(--ink-soft);position:sticky;top:0;white-space:nowrap;font-weight:700;z-index:2}
+  th.super{font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:8px 10px;
+    color:#fff;background:linear-gradient(120deg,var(--rbc-blue-dark),var(--rbc-blue));
+    border-right:2px solid var(--panel);border-bottom:2px solid var(--panel)}
+  th.grp{font-size:11px;text-transform:uppercase;letter-spacing:.4px;cursor:pointer;border-bottom:3px solid var(--gc,var(--line));
+    user-select:none;padding:9px 10px}
+  th.grp:hover{background:var(--line)}
+  th.grp .arw{opacity:.6;font-size:9px;margin-left:3px}
+  th.sub{font-size:9.5px;text-transform:uppercase;letter-spacing:.2px;font-weight:700;padding:6px 5px;
+    border-bottom:3px solid var(--gc,var(--line))}
+  th.svc{position:sticky;left:0;z-index:4;min-width:212px;text-align:left;padding-left:14px;font-size:10.5px;
+    text-transform:uppercase;letter-spacing:.4px}
+  td.svc{position:sticky;left:0;background:var(--panel);z-index:1;font-weight:650;min-width:212px;text-align:left;padding-left:14px}
+  tbody tr:hover td{background:var(--bg)}
+  tbody tr:hover td.svc{background:var(--bg)}
+
+  .cell{width:28px;height:23px;border-radius:5px;display:inline-grid;place-items:center;color:#fff;font-weight:800;font-size:12px;position:relative}
+  .c-full{background:var(--full)}.c-partial{background:var(--partial)}.c-planned{background:var(--planned)}
+  .c-none{background:var(--none);color:var(--ink-soft)}
+
+  /* inline update highlighting */
+  :root{--upd:#7c5cff}
+  [data-theme="dark"]{--upd:#a68bff}
+  .cell.upd{box-shadow:0 0 0 2px var(--panel),0 0 0 3px var(--upd)}
+  .umark{position:absolute;top:-5px;right:-5px;width:10px;height:10px;border-radius:50%;background:var(--upd);
+    border:2px solid var(--panel);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(124,92,255,.5)}70%{box-shadow:0 0 0 5px rgba(124,92,255,0)}100%{box-shadow:0 0 0 0 rgba(124,92,255,0)}}
+  td.hascell{position:relative}
+  .updflag{position:absolute;top:3px;right:5px;background:var(--upd);color:#fff;font-size:9px;font-weight:800;
+    border-radius:20px;padding:1px 5px;line-height:1.3;box-shadow:0 0 0 2px var(--panel)}
+  .gseg span.segupd{box-shadow:0 0 0 1.5px var(--upd);border-radius:2px}
+  .umark-lg{width:11px;height:11px;border-radius:50%;background:var(--upd);flex:none;display:inline-block}
+  .card.newcard{box-shadow:0 0 0 1px var(--upd),var(--shadow)}
+  .cardflag{position:absolute;top:0;right:0;background:var(--upd);color:#fff;font-size:9.5px;font-weight:800;
+    padding:3px 9px;border-bottom-left-radius:10px;letter-spacing:.4px}
+
+  /* group summary cell */
+  .gcell{display:inline-flex;flex-direction:column;align-items:center;gap:4px;min-width:66px}
+  .gseg{display:flex;gap:2px}
+  .gseg span{width:9px;height:14px;border-radius:2px}
+  .gnum{font-size:11px;font-weight:800}
+  .covcell{font-weight:800;font-size:12.5px}
+
+  .dgroup td{background:linear-gradient(90deg,rgba(0,93,170,.08),transparent);font-weight:700;font-size:11.5px;
+    color:var(--rbc-blue);text-align:left;padding-left:14px;letter-spacing:.3px;text-transform:uppercase}
+  td.dgroup.svc{background:linear-gradient(90deg,rgba(0,93,170,.08),transparent)}
+  [data-theme="dark"] .dgroup td,[data-theme="dark"] td.dgroup.svc{color:#6fb4ec}
+  tr.dgroup:hover td{background:rgba(0,93,170,.14)}
+  .darw{display:inline-block;width:12px;font-size:9px;opacity:.7;margin-right:2px}
+  .dcount{font-weight:700;font-size:10px;color:var(--ink-soft);background:var(--panel);border:1px solid var(--line);
+    border-radius:20px;padding:0 7px;margin-left:6px;text-transform:none;letter-spacing:0}
+  .drollup{text-transform:none;letter-spacing:0;font-weight:600;color:var(--ink-soft);font-size:11px}
+  .drollup b{font-weight:800}
+
+  /* landscape */
+  .domain{margin-bottom:26px}
+  .domain-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .domain-head h2{margin:0;font-size:15px;font-weight:700}
+  .domain-head .count{font-size:12px;color:var(--ink-soft);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:2px 10px;font-weight:600}
+  .domain-head .rail{flex:1;height:1px;background:var(--line)}
+  .domain-head .avg{font-size:12px;color:var(--ink-soft);font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);
+    cursor:pointer;transition:transform .12s,box-shadow .12s;position:relative;overflow:hidden}
+  .card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(16,30,54,.14)}
+  .card .accent{position:absolute;left:0;top:0;bottom:0;width:4px}
+  .card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .card h3{margin:0;font-size:14.5px;font-weight:700}
+  .card .owner{font-size:11.5px;color:var(--ink-soft);margin-top:3px}
+  .badge{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;text-transform:uppercase;letter-spacing:.4px}
+  .b-ga{background:#e3f4ea;color:#1f7a4d}.b-preview{background:#fdf1d6;color:#a9770a}
+  .b-planned{background:#eef1f5;color:#54647a}.b-retiring{background:#fbe4e4;color:#b23b3b}
+  [data-theme="dark"] .b-ga{background:#12331f;color:#5fd08c}[data-theme="dark"] .b-preview{background:#332711;color:#f2c85a}
+  [data-theme="dark"] .b-planned{background:#1c2a3d;color:#9db1c9}[data-theme="dark"] .b-retiring{background:#3a1c1c;color:#e08a8a}
+  /* timeline horizon badges */
+  .b-near{background:#e3f4ea;color:#1f7a4d}
+  .b-mid{background:#fdf1d6;color:#a9770a}
+  .b-far{background:#eaeef4;color:#54647a}
+  .b-na{background:#eef1f5;color:#8494a8}
+  [data-theme="dark"] .b-near{background:#12331f;color:#5fd08c}[data-theme="dark"] .b-mid{background:#332711;color:#f2c85a}
+  [data-theme="dark"] .b-far{background:#1c2a3d;color:#9db1c9}[data-theme="dark"] .b-na{background:#1a2536;color:#7f90a6}
+  .roi{font-size:9.5px;font-weight:800;letter-spacing:.4px;color:var(--rbc-blue);background:rgba(0,93,170,.12);
+    border-radius:5px;padding:2px 6px;margin-left:6px;vertical-align:middle}
+  [data-theme="dark"] .roi{background:rgba(90,169,230,.18);color:#7fc0f5}
+  .cov{display:flex;align-items:center;gap:12px;margin-top:14px}
+  .ring{--p:0;width:52px;height:52px;border-radius:50%;flex:none;
+    background:conic-gradient(var(--full) calc(var(--p)*1%),var(--line) 0);display:grid;place-items:center}
+  .ring::before{content:'';position:absolute;width:40px;height:40px;border-radius:50%;background:var(--panel)}
+  .ring b{position:relative;font-size:13px;font-weight:800}
+  .cov .lab{font-size:11.5px;color:var(--ink-soft)}
+  .cov .lab strong{color:var(--ink);font-size:13px;font-weight:700}
+  .grpstrip{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+  .gpill{display:flex;flex-direction:column;gap:3px}
+  .gpill .gt{font-size:9px;text-transform:uppercase;letter-spacing:.3px;color:var(--ink-soft);font-weight:700}
+  .gpill .gb{display:flex;gap:2px}
+  .gpill .gb span{width:8px;height:12px;border-radius:2px}
+  .metaline{display:flex;justify-content:space-between;margin-top:12px;font-size:11.5px;color:var(--ink-soft)}
+  .metaline .ml{font-weight:700}
+
+  /* drawer */
+  .scrim{position:fixed;inset:0;background:rgba(6,14,26,.45);opacity:0;pointer-events:none;transition:opacity .2s;z-index:80}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:450px;max-width:92vw;background:var(--panel);
+    box-shadow:-10px 0 40px rgba(6,14,26,.3);transform:translateX(100%);transition:transform .25s;z-index:90;overflow-y:auto;padding:26px}
+  .drawer.open{transform:translateX(0)}
+  .drawer .x{position:absolute;top:18px;right:18px;border:0;background:var(--bg);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px;color:var(--ink)}
+  .drawer h2{margin:6px 0 2px;font-size:20px;letter-spacing:-.3px}
+  .drawer .dom{font-size:12px;color:var(--ink-soft);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .drawer .desc{font-size:13.5px;line-height:1.55;color:var(--ink-soft);margin:14px 0 18px}
+  .meta{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .meta div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .meta .k{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-soft);font-weight:600}
+  .meta .v{font-size:14px;font-weight:700;margin-top:3px}
+  .gsec{margin-top:20px}
+  .gsec-h{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;text-transform:uppercase;
+    letter-spacing:.4px;font-weight:800;padding:6px 0;border-bottom:2px solid var(--gc,var(--line));margin-bottom:6px}
+  .gsec-h .gc{color:var(--gc)}
+  .caprow{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13px;padding:3px 0}
+  .caprow .ci{width:19px;height:19px;border-radius:5px;flex:none;display:grid;place-items:center;color:#fff;font-weight:800;font-size:10px}
+  .caprow .cn{flex:1;font-weight:600}
+  .caprow .cs{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+
+  footer{max-width:1560px;margin:0 auto;padding:0 32px 40px;color:var(--ink-soft);font-size:11.5px}
+  .note{background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:12px 16px;margin-top:8px}
+  @media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="head-row">
+    <div class="logo">RBC</div>
+    <div class="title">
+      <h1>RBC Cloud — Capability View</h1>
+      <p>Service capability coverage by category for leadership · <em>capability scores are placeholder</em></p>
+    </div>
+    <div class="head-spacer"></div>
+    <div class="asof" id="asof">As of Q3 2026</div>
+    <button class="toggle" onclick="toggleTheme()" id="themeBtn">◐ Dark</button>
+  </div>
+</header>
+
+<main>
+  <section class="kpis" id="kpis"></section>
+
+  <div class="changebar" id="changebar"></div>
+
+  <div class="controls">
+    <div class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+      <input id="search" placeholder="Search platforms…" oninput="render()">
+    </div>
+    <button class="lnk" id="hlBtn" onclick="toggleHL()" style="border-color:var(--upd);color:var(--upd)">✦ Updates: On</button>
+    <button class="lnk" id="catBtn" onclick="toggleAllDoms()">⊟ Collapse categories</button>
+    <button class="lnk" id="expBtn" onclick="toggleAll()">⤢ Expand all</button>
+    <div class="seg" id="viewseg">
+      <button class="active" data-view="matrix" onclick="setView('matrix')">Capability Matrix</button>
+      <button data-view="landscape" onclick="setView('landscape')">Landscape</button>
+      <button data-view="arch" onclick="setView('arch')">Architecture Simplification</button>
+      <button data-view="changes" onclick="setView('changes')">What's Changed</button>
+    </div>
+  </div>
+  <div class="controls" id="domainChips"></div>
+
+  <div class="legend">
+    <span><b>Capability status</b></span>
+    <span class="lg"><span class="sw c-full">✓</span> Available</span>
+    <span class="lg"><span class="sw c-partial">◐</span> Partial</span>
+    <span class="lg"><span class="sw c-planned">→</span> Roadmap</span>
+    <span class="lg"><span class="sw c-none" style="color:var(--ink-soft)">–</span> Not offered</span>
+    <span class="lg" style="margin-left:10px"><span class="hvstar-lg">★</span> High-value capability</span>
+  </div>
+  <div class="legend">
+    <span><b>Architecture Simplification signal</b></span>
+    <span class="lg"><span class="sw" style="background:#1f9d57">▲</span> Buy — invest &amp; grow</span>
+    <span class="lg"><span class="sw" style="background:#e8a417">●</span> Hold — maintain</span>
+    <span class="lg"><span class="sw" style="background:#d64545">▼</span> Sell — retire / migrate</span>
+    <span class="lg" style="margin-left:14px"><span class="umark-lg"></span> Updated since Q2</span>
+    <span class="lg"><span class="delta" style="margin:0">▲N</span> &nbsp;capabilities improved since Q2</span>
+    <span class="lg"><span class="delta dnew" style="margin:0">NEW</span> &nbsp;added since Q2</span>
+  </div>
+  <div class="hint" id="hint">Grouped by <b>Service Category</b> · 24 capabilities rolled into 6 groups. Each group cell shows <b>how many of its capabilities are available</b> (e.g. 3/4). <b>Click a group header</b> to expand it into individual capabilities, or a <b>category header</b> to collapse its services; <span style="color:var(--upd);font-weight:800">✦</span> marks where capabilities changed since Q2.</div>
+
+  <div id="content"></div>
+</main>
+
+<footer>
+  <div class="note">
+    <strong>Services, categories, timelines and ROI flags are your real data</strong> (transcribed from the uploaded sheet).
+    The <strong>capability scores are placeholder</strong> — auto-generated per service so the layout is populated, ready
+    for you to replace with the real assessment. A couple of timeline/ROI cells were hard to read from the photos; verify
+    against the source sheet (or send the .xlsx and I'll lock them exactly).
+  </div>
+</footer>
+
+<div class="scrim" id="scrim" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer"><button class="x" onclick="closeDrawer()">✕</button><div id="drawerBody"></div></div>
+
+<script>
+/* ---------- capability groups + capabilities ---------- */
+/* sc = super-category (top header band). Add more super-categories by giving groups a different sc;
+   keep groups of the same sc contiguous in this array so the header spans align. */
+const GROUPS=[
+ {k:'Lifecycle',   c:'#4a9de0', sc:'RBC Cloud'},
+ {k:'Resilience',  c:'#1f9d57', sc:'RBC Cloud'},
+ {k:'Security',    c:'#7b61ff', sc:'RBC Cloud'},
+ {k:'Compliance',  c:'#e8a417', sc:'RBC Cloud'},
+ {k:'Observability',c:'#e0679a', sc:'RBC Cloud'},
+ {k:'Ops & Cost',  c:'#14b8a6', sc:'RBC Cloud'},
+];
+/* ordered unique super-categories, preserving group order */
+const SUPERS=[...new Set(GROUPS.map(g=>g.sc))];
+/* t = advancedness tier (drives sample data) */
+const CAPS=[
+ {k:'Provisioning',s:'Prov',g:'Lifecycle',t:1},
+ {k:'Patching Automation',s:'Patch',g:'Lifecycle',t:4,hv:1},
+ {k:'Config Management',s:'Config',g:'Lifecycle',t:3},
+ {k:'Decommissioning',s:'Decom',g:'Lifecycle',t:3},
+ {k:'Backup & Restore',s:'Backup',g:'Resilience',t:3,hv:1},
+ {k:'HA / DR',s:'HA/DR',g:'Resilience',t:4,hv:1},
+ {k:'Auto-scaling',s:'Scale',g:'Resilience',t:4},
+ {k:'Failover Testing',s:'Failover',g:'Resilience',t:5},
+ {k:'Access Control (IAM)',s:'Access',g:'Security',t:1,hv:1},
+ {k:'Encryption',s:'Encrypt',g:'Security',t:2,hv:1},
+ {k:'Secrets Management',s:'Secrets',g:'Security',t:3},
+ {k:'Vulnerability Scanning',s:'VulnScan',g:'Security',t:4,hv:1},
+ {k:'Policy Guardrails',s:'Policy',g:'Compliance',t:5,hv:1},
+ {k:'Audit Logging',s:'Audit',g:'Compliance',t:2,hv:1},
+ {k:'Data Residency',s:'Residency',g:'Compliance',t:3},
+ {k:'Certification',s:'Cert',g:'Compliance',t:4},
+ {k:'Monitoring',s:'Monitor',g:'Observability',t:2},
+ {k:'Logging',s:'Logs',g:'Observability',t:2},
+ {k:'Distributed Tracing',s:'Tracing',g:'Observability',t:4},
+ {k:'Alerting',s:'Alerts',g:'Observability',t:3},
+ {k:'Cost Visibility',s:'Cost',g:'Ops & Cost',t:3},
+ {k:'IaC / API',s:'IaC',g:'Ops & Cost',t:3},
+ {k:'Self-Service Portal',s:'Portal',g:'Ops & Cost',t:3},
+ {k:'SLA / Support',s:'SLA',g:'Ops & Cost',t:2},
+];
+const MAT={1:'Emerging',2:'Developing',3:'Established',4:'Managed',5:'Optimized'};
+const MC={1:'var(--m1)',2:'var(--m2)',3:'var(--m3)',4:'var(--m4)',5:'var(--m5)'};
+const DOMAINS=['Application','Cloud','Compute','Connectivity','Data','Storage','Mainframe','Operations','Client Computing'];
+/* base sample maturity per category (drives placeholder capability scores — replace with real assessment) */
+const CATBASE={'Application':2,'Cloud':4,'Compute':3,'Connectivity':3,'Data':3,'Storage':3,'Mainframe':2,'Operations':3,'Client Computing':3};
+
+const P=[
+ // ---- Application ----
+ {n:'Middleware: Content Manager',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'Middleware: Royal Bank Data Mover',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'Middleware: Websphere Liberty',d:'Application',tl:"Q2'2026",roi:'Yes'},
+ {n:'Middleware: GDM/NGM',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'ISAM',d:'Application',tl:"Q2'2027",roi:'Yes'},
+ {n:'IBMi',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'Middleware: Websphere MainFrame',d:'Application',tl:"Q2'2026",roi:'Yes'},
+ {n:'Middleware: PEGA Systems',d:'Application',tl:"Q2'2027",roi:'Yes'},
+ {n:'Middleware: Websphere Distributed',d:'Application',tl:"Q2'2026",roi:'Yes'},
+ {n:'Middleware: BizTalk',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'Middleware: BusinessWorks',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'Network: Niche Firewall XML Gateway',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'Enterprise Systems Management',d:'Application',tl:"Q4'2027",roi:'Yes'},
+ {n:'Middleware: OnDemand',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'HP NonStop - Bess and OMS',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'Middleware: IMS',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'TS&O: Dedicated to Application',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'Network: NetCON',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'HP NonStop - Rimms',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'Middleware: BusinessWare',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'Middleware: Message Broker',d:'Application',tl:"Q1'2027",roi:'Yes'},
+ {n:'HP NonStop - Moneris',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'Middleware: CICS',d:'Application',tl:"Q4'2029",roi:''},
+ {n:'Middleware: JBOSS: EAP',d:'Application',tl:"Q3'2026",roi:'Yes'},
+ {n:'Middleware: JBOSS: EWS',d:'Application',tl:"Q2'2026",roi:'Yes'},
+ {n:'Middleware: ConnectDirect',d:'Application',tl:"Q4'2029",roi:''},
+ // ---- Connectivity ----
+ {n:'Network: E-Commerce',d:'Connectivity',tl:"Q3'2027",roi:''},
+ {n:'Network: Extranet',d:'Connectivity',tl:"Q4'2026",roi:'Yes'},
+ {n:'Public DNS',d:'Connectivity',tl:"Q4'2026",roi:'Yes'},
+ {n:'Content Delivery (CDN)',d:'Connectivity',tl:"Q2'2027",roi:'Yes'},
+ {n:'Datacenter Networking',d:'Connectivity',tl:"Q3'2026",roi:'Yes'},
+ {n:'ABM Network',d:'Connectivity',tl:'NA',roi:''},
+ {n:'myRemote PC',d:'Connectivity',tl:"Q4'2029",roi:''},
+ {n:'Dataline: International',d:'Connectivity',tl:"Q4'2029",roi:''},
+ {n:'Branch Network',d:'Connectivity',tl:"Q4'2029",roi:''},
+ {n:'DNS',d:'Connectivity',tl:"Q2'2026",roi:'No'},
+ {n:'Network Firewall (GCS Partnership)',d:'Connectivity',tl:"Q1'2027",roi:''},
+ {n:'Network Observability (TBD)',d:'Connectivity',tl:"Q2'2026",roi:'No'},
+ {n:'Automated Application Balancing',d:'Connectivity',tl:"Q3'2026",roi:'No'},
+ // ---- Cloud ----
+ {n:'Elasticsearch',d:'Cloud',tl:"Q2'2027",roi:''},
+ {n:'OpenShift',d:'Cloud',tl:'NA',roi:''},
+ {n:'Kafka',d:'Cloud',tl:"Q3'2026",roi:''},
+ {n:'Caching',d:'Cloud',tl:"Q4'2026",roi:''},
+ {n:'Cloud - PCF',d:'Cloud',tl:'NA',roi:''},
+ {n:'Logging',d:'Cloud',tl:"Q3'2026",roi:''},
+ {n:'Public Cloud - AWS',d:'Cloud',tl:'NA',roi:''},
+ // ---- Data ----
+ {n:'Diamanti: MongoDB',d:'Data',tl:"Q2'2026",roi:'Yes'},
+ {n:'Database: Sybase',d:'Data',tl:"Q4'2029",roi:''},
+ {n:'Database: Oracle',d:'Data',tl:"Q4'2027",roi:''},
+ {n:'Oracle ASO',d:'Data',tl:"Q4'2029",roi:''},
+ {n:'Database: SCON',d:'Data',tl:"Q4'2026",roi:'Yes'},
+ {n:'Database: SQL Server',d:'Data',tl:"Q4'2026",roi:'Yes'},
+ {n:'Singlestore (MemSQL)',d:'Data',tl:"Q4'2027",roi:'Yes'},
+ {n:'Database: OCON Intel',d:'Data',tl:"Q4'2027",roi:''},
+ {n:'Enterprise Database Administration',d:'Data',tl:"Q4'2029",roi:''},
+ {n:'Database: OCON AIX',d:'Data',tl:"Q4'2027",roi:''},
+ {n:'Database: DB2 (Distributed)',d:'Data',tl:"Q4'2027",roi:''},
+ {n:'Database: SyCON',d:'Data',tl:"Q4'2029",roi:''},
+ {n:'AI Farm',d:'Data',tl:"Q4'2029",roi:''},
+ {n:'DaaS - MariaDB',d:'Data',tl:"Q2'2026",roi:'No'},
+ {n:'DaaS - MongoDB',d:'Data',tl:"Q2'2026",roi:'No'},
+ {n:'DaaS - PostgreDB',d:'Data',tl:"Q2'2026",roi:'No'},
+ // ---- Storage ----
+ {n:'Storage: NAS',d:'Storage',tl:"Q2'2027",roi:'Yes'},
+ {n:'File Hosting Service',d:'Storage',tl:"Q2'2027",roi:'Yes'},
+ {n:'Storage: Backup and Recovery',d:'Storage',tl:"Q2'2027",roi:'Yes'},
+ {n:'Storage: SAN',d:'Storage',tl:"Q2'2027",roi:'Yes'},
+ {n:'Storage: Mainframe',d:'Storage',tl:'NA',roi:''},
+ {n:'Object Storage',d:'Storage',tl:"Q3'2026",roi:'No'},
+ // ---- Compute ----
+ {n:'M/F Specialty CPU (zIIP)',d:'Compute',tl:'NA',roi:''},
+ {n:'M/F General CPU (GCP)',d:'Compute',tl:'NA',roi:''},
+ {n:'Diamanti',d:'Compute',tl:"Q2'2026",roi:'Yes'},
+ {n:'Server Hardware: X-86 Windows',d:'Compute',tl:"Q3'2026",roi:'Yes'},
+ {n:'Server Hardware: X-86 Linux',d:'Compute',tl:"Q3'2027",roi:''},
+ {n:'AIX Memory',d:'Compute',tl:"Q3'2027",roi:''},
+ {n:'CM: Premises SLER',d:'Compute',tl:'NA',roi:''},
+ {n:'Server Management: Linux Physical',d:'Compute',tl:'NA',roi:''},
+ {n:'Server Management: Windows Physical',d:'Compute',tl:"Q4'2029",roi:''},
+ {n:'Server Support: Windows Facilities and Network',d:'Compute',tl:"Q4'2029",roi:''},
+ {n:'Server Support: Linux Facilities and Network',d:'Compute',tl:'NA',roi:''},
+ {n:'Server Hardware: Solaris',d:'Compute',tl:'NA',roi:''},
+ {n:'Server Management: Solaris',d:'Compute',tl:'NA',roi:''},
+ {n:'Server Management: AIX',d:'Compute',tl:'NA',roi:''},
+ {n:'AIX CPU',d:'Compute',tl:"Q4'2027",roi:''},
+ {n:'VM Storage',d:'Compute',tl:"Q1'2026",roi:'No'},
+ {n:'VM Compute - Windows',d:'Compute',tl:"Q1'2026",roi:'No'},
+ {n:'VM Compute - Linux',d:'Compute',tl:"Q1'2026",roi:'No'},
+ {n:'VM Dedicated',d:'Compute',tl:"Q1'2026",roi:'No'},
+ // ---- Operations ----
+ {n:'SRE & Incident Management',d:'Operations',tl:'NA',roi:''},
+ {n:'ServiceNow',d:'Operations',tl:'NA',roi:''},
+ {n:'myMarketPlace',d:'Operations',tl:'NA',roi:''},
+ // ---- Client Computing ----
+ {n:'myMobility',d:'Client Computing',tl:'NA',roi:''},
+ // ---- Mainframe ----
+ {n:'Middleware: Messaging (z/OS)',d:'Mainframe',tl:"Q1'2027",roi:'Yes'},
+ {n:'Middleware: OnDemand (z/OS)',d:'Mainframe',tl:"Q4'2029",roi:''},
+ {n:'z/OS Connect',d:'Mainframe',tl:"Q4'2029",roi:''},
+ {n:'Database: DB2 (z/OS)',d:'Mainframe',tl:"Q4'2027",roi:''},
+];
+
+function hash(str){let h=0;for(let i=0;i<str.length;i++){h=(h*31+str.charCodeAt(i))>>>0}return h}
+function capStatus(p,cap){
+  let level=p.m-cap.t;
+  const j=hash(p.n+cap.k)%10;
+  if(j>=8)level+=1; else if(j<=1)level-=1;
+  return level>=1?'full':level===0?'partial':level===-1?'planned':'none';
+}
+/* placeholder sample maturity: category baseline + deterministic jitter (replace with real assessment) */
+P.forEach(p=>{p.m=Math.max(1,Math.min(5,(CATBASE[p.d]||3)+((hash(p.n)%3)-1)));});
+P.forEach(p=>{
+  p.caps={};let full=0,partial=0;
+  CAPS.forEach(c=>{const st=capStatus(p,c);p.caps[c.k]=st;if(st==='full')full++;if(st==='partial')partial++;});
+  p.full=full;p.partial=partial;p.cov=Math.round((full+partial*0.5)/CAPS.length*100);
+  p.gcov={};
+  GROUPS.forEach(g=>{
+    const gc=CAPS.filter(c=>c.g===g.k);
+    let f=0,pa=0;gc.forEach(c=>{if(p.caps[c.k]==='full')f++;if(p.caps[c.k]==='partial')pa++;});
+    p.gcov[g.k]={full:f,partial:pa,size:gc.length};
+  });
+});
+
+/* ---------- previous snapshot + diff (sample: vs Q2 2026) ---------- */
+const PREV_LABEL='Q2 2026', CUR_LABEL='Q3 2026';
+const NEW_SINCE=new Set(['VM Compute - Linux','DaaS - PostgreDB','Object Storage']);
+const RANK={none:0,planned:1,partial:2,full:3};
+const ORDER=['none','planned','partial','full'];
+const CHANGES={newp:[],upg:[]};
+P.forEach(p=>{
+  p.isNew=NEW_SINCE.has(p.n);
+  p.prev={};p.delta=0;p.upg=[];
+  CAPS.forEach(c=>{
+    const cur=p.caps[c.k];let prev;
+    if(p.isNew){prev='none';}
+    else{prev=cur; if((hash(p.n+c.k+'v')%7)===0 && RANK[cur]>0) prev=ORDER[RANK[cur]-1];}
+    p.prev[c.k]=prev;
+    if(RANK[cur]>RANK[prev]) {p.delta++;p.upg.push({k:c.k,from:prev,to:cur});}
+  });
+  p.chg=new Set(p.upg.map(u=>u.k));
+  if(p.isNew)CHANGES.newp.push(p); else if(p.upg.length)CHANGES.upg.push(p);
+});
+CHANGES.upgCells=CHANGES.upg.reduce((a,p)=>a+p.upg.length,0);
+
+/* ---------- Architecture simplification: suggested Buy / Hold / Sell ---------- */
+/* Derived from category + legacy/cloud-native keywords + timeline horizon.
+   Placeholder logic — override per service once the target-state decisions are set. */
+const SIG={
+  Buy:{c:'#1f9d57',lab:'Buy',verb:'Invest & grow',ico:'▲'},
+  Hold:{c:'#e8a417',lab:'Hold',verb:'Maintain',ico:'●'},
+  Sell:{c:'#d64545',lab:'Sell',verb:'Retire / migrate off',ico:'▼'},
+};
+const SELL_KW=['HP NonStop','Sybase','Solaris','BizTalk','BusinessWorks','BusinessWare','IBMi','Oracle ASO','DB2 (Distributed)','OCON','SyCON','Niche Firewall','NetCON','IMS','CICS','Content Manager','Royal Bank Data Mover','GDM/NGM','ConnectDirect','ISAM','OnDemand','AIX','M/F ','Premises SLER','Dataline','Branch Network','ABM Network','myRemote','Extranet'];
+const BUY_KW=['DaaS','VM Compute','VM Storage','VM Dedicated','OpenShift','Kafka','Elasticsearch','Caching','Public Cloud','Diamanti','Singlestore','Object Storage','Content Delivery','Public DNS','Network Firewall','Automated Application','Network Observability','AI Farm','PCF','Logging'];
+function signalFor(p){
+  const n=p.n, yr=parseInt((p.tl.match(/20\d\d/)||[0])[0],10);
+  const isSell=SELL_KW.some(k=>n.includes(k));
+  const isBuy=BUY_KW.some(k=>n.includes(k))||p.d==='Cloud';
+  let sig;
+  if(isBuy&&!isSell) sig='Buy';
+  else if(isSell&&!isBuy) sig='Sell';
+  else if(isBuy&&isSell) sig=p.d==='Cloud'?'Buy':'Sell';
+  else sig='Hold';
+  let why;
+  if(sig==='Buy') why='Strategic, cloud-native target-state platform — invest and consolidate onto it.';
+  else if(sig==='Sell') why=yr>=2029?'Legacy platform on a long horizon — plan migration and decommission.':'Legacy platform with a set exit ('+(p.tl||'TBD')+') — migrate workloads off and retire.';
+  else why='Stable and fit-for-purpose — maintain with no major investment.';
+  return {sig,why};
+}
+/* manual overrides — set the target-state call for specific services (win over the derived signal) */
+const SIG_OVERRIDE={'Cloud - PCF':'Sell'};
+function whyFor(sig){return sig==='Buy'?'Strategic, cloud-native target-state platform — invest and consolidate onto it.'
+  :sig==='Sell'?'Flagged for retirement — migrate workloads off and decommission.'
+  :'Stable and fit-for-purpose — maintain with no major investment.';}
+P.forEach(p=>{const s=signalFor(p);const ov=SIG_OVERRIDE[p.n];p.sig=ov||s.sig;p.sigWhy=ov?whyFor(ov):s.why;});
+
+const STY={full:{c:'c-full',g:'✓',l:'Available'},partial:{c:'c-partial',g:'◐',l:'Partial'},planned:{c:'c-planned',g:'→',l:'Roadmap'},none:{c:'c-none',g:'–',l:'Not offered'}};
+const SVAR={full:'var(--full)',partial:'var(--partial)',planned:'var(--planned)',none:'var(--none)'};
+
+let view='matrix',domainFilter='All';
+const expanded=new Set();
+const collapsedDoms=new Set();
+let hlUpdates=true;
+
+function renderKPIs(){
+  const total=P.length,cells=total*CAPS.length;
+  const full=P.reduce((a,p)=>a+p.full,0),partial=P.reduce((a,p)=>a+p.partial,0);
+  const availPct=Math.round((full+partial*0.5)/cells*100);
+  const nearN=P.filter(p=>{const y=parseInt((p.tl.match(/20\d\d/)||[0])[0],10);return y&&y<=2026;}).length;
+  const avgM=(P.reduce((a,p)=>a+p.m,0)/total).toFixed(1);
+  const k=[
+    {lab:'Services in scope',val:total,sub:DOMAINS.length+' categories · '+CAPS.length+' capabilities'},
+    {lab:'Capability coverage',val:availPct+'%',sub:full+' available · '+partial+' partial (sample)',pct:availPct},
+    {lab:'Near-term (≤2026)',val:nearN,sub:'timeline this year or sooner',pct:Math.round(nearN/total*100)},
+    {lab:'Avg. maturity',val:avgM,small:'/ 5',sub:'placeholder — pending assessment',pct:Math.round(avgM/5*100)},
+    {lab:'Capability groups',val:GROUPS.length,sub:'grouped for scanning',pct:100},
+  ];
+  document.getElementById('kpis').innerHTML=k.map(x=>`
+    <div class="kpi"><div class="lab">${x.lab}</div>
+      <div class="val">${x.val}${x.small?`<small>${x.small}</small>`:''}</div>
+      <div class="sub">${x.sub}</div>
+      ${x.pct!=null?`<div class="bar"><i style="width:${x.pct}%"></i></div>`:''}</div>`).join('');
+}
+
+function renderChips(){
+  const chips=['All',...DOMAINS];
+  document.getElementById('domainChips').innerHTML=chips.map(c=>
+    `<span class="chip ${c===domainFilter?'active':''}" onclick="setDomain('${c.replace(/'/g,"\\'")}')">${c}</span>`).join('');
+}
+function setDomain(d){domainFilter=d;renderChips();render();}
+function setView(v){view=v;document.querySelectorAll('#viewseg button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  document.getElementById('expBtn').style.display=v==='matrix'?'':'none';
+  document.getElementById('catBtn').style.display=v==='matrix'?'':'none';
+  document.getElementById('hlBtn').style.display=v==='matrix'||v==='landscape'?'':'none';
+  document.getElementById('hint').style.display=v==='matrix'?'':'none';
+  render();}
+function toggleGroup(k){expanded.has(k)?expanded.delete(k):expanded.add(k);syncExpBtn();render();}
+function toggleAll(){if(expanded.size===GROUPS.length)expanded.clear();else GROUPS.forEach(g=>expanded.add(g.k));syncExpBtn();render();}
+function toggleHL(){hlUpdates=!hlUpdates;document.getElementById('hlBtn').textContent='✦ Updates: '+(hlUpdates?'On':'Off');render();}
+function syncExpBtn(){document.getElementById('expBtn').textContent=expanded.size===GROUPS.length?'⤡ Collapse all':'⤢ Expand all';}
+function toggleDom(d){collapsedDoms.has(d)?collapsedDoms.delete(d):collapsedDoms.add(d);syncCatBtn();render();}
+function toggleAllDoms(){if(collapsedDoms.size>=DOMAINS.length)collapsedDoms.clear();else DOMAINS.forEach(d=>collapsedDoms.add(d));syncCatBtn();render();}
+function syncCatBtn(){const b=document.getElementById('catBtn');if(b)b.textContent=collapsedDoms.size>=DOMAINS.length?'⊞ Expand categories':'⊟ Collapse categories';}
+/* timeline badge — colored by horizon */
+function tlClass(tl){
+  if(!tl||tl==='NA') return 'b-na';
+  const y=parseInt((tl.match(/20\d\d/)||['2029'])[0],10);
+  return y<=2026?'b-near':y===2027?'b-mid':'b-far';
+}
+function tlBadge(p){return `<span class="badge ${tlClass(p.tl)}" title="Timeline: ${p.tl||'—'}">${p.tl||'—'}</span>`;}
+function roiTag(p){return p.roi==='Yes'?`<span class="roi" title="Included in ROI analysis">ROI</span>`:'';}
+function filtered(){
+  const q=document.getElementById('search').value.toLowerCase();
+  return P.filter(p=>(domainFilter==='All'||p.d===domainFilter)&&(p.n.toLowerCase().includes(q)||p.d.toLowerCase().includes(q)));
+}
+function ratioColor(f,size){const r=f/size;return r>=.75?'var(--full)':r>=.4?'var(--partial)':'var(--ink-soft)';}
+
+/* ---------- matrix ---------- */
+function renderMatrix(){
+  const data=filtered();
+  const doms=DOMAINS.filter(d=>data.some(p=>p.d===d));
+  // header — super-category band + group row; capability sub-row only appears when a group is expanded
+  const anyEx=GROUPS.some(g=>expanded.has(g.k));
+  const rs=anyEx?3:2;
+  const colsOf=g=>expanded.has(g.k)?CAPS.filter(c=>c.g===g.k).length:1;
+  let h0=`<tr><th class="svc" rowspan="${rs}">Service</th>`;
+  SUPERS.forEach(sc=>{
+    const cols=GROUPS.filter(g=>g.sc===sc).reduce((a,g)=>a+colsOf(g),0);
+    h0+=`<th class="super" colspan="${cols}">${sc}</th>`;
+  });
+  h0+=`<th class="grp" rowspan="${rs}">Overall</th><th class="grp" rowspan="${rs}">Timeline</th></tr>`;
+  let h1='<tr>';
+  let h2='<tr>';
+  GROUPS.forEach(g=>{
+    const ex=expanded.has(g.k);
+    const gc=CAPS.filter(c=>c.g===g.k);
+    const hstyle=ex?`--gc:${g.c};background:${g.c};color:#fff;border-left:2px solid ${g.c};border-right:2px solid ${g.c}`:`--gc:${g.c}`;
+    h1+=`<th class="grp${ex?' exg':''}" style="${hstyle}" colspan="${ex?gc.length:1}" onclick="toggleGroup('${g.k}')">${ex?'▾ ':''}${g.k}<span class="arw">${ex?'':'▸'}</span></th>`;
+    if(ex){gc.forEach((c,j)=>{const fl=j===0?`;border-left:2px solid ${g.c}`:'';const fr=j===gc.length-1?`;border-right:2px solid ${g.c}`:'';h2+=`<th class="sub" style="--gc:${g.c};background:${g.c}14${fl}${fr}" title="${c.hv?'high-value · ':''}${c.k}">${c.s}${c.hv?' <span class="hvs">★</span>':''}</th>`;});}
+    else if(anyEx){h2+=`<th class="sub" style="--gc:${g.c}"></th>`;}
+  });
+  h1+='</tr>';
+  h2+='</tr>';
+  // body
+  let rows='';
+  const span=GROUPS.reduce((a,g)=>a+(expanded.has(g.k)?CAPS.filter(c=>c.g===g.k).length:1),0)+3;
+  doms.forEach(d=>{
+    const items=data.filter(p=>p.d===d);
+    const col=collapsedDoms.has(d);
+    const avg=Math.round(items.reduce((a,p)=>a+p.cov,0)/items.length);
+    const sc={Buy:0,Hold:0,Sell:0};items.forEach(p=>sc[p.sig]++);
+    const roll=col?`<span class="drollup">avg coverage ${avg}% · <b style="color:${SIG.Buy.c}">${sc.Buy} Buy</b> · <b style="color:${SIG.Hold.c}">${sc.Hold} Hold</b> · <b style="color:${SIG.Sell.c}">${sc.Sell} Sell</b></span>`:'';
+    rows+=`<tr class="dgroup" onclick="toggleDom('${d.replace(/'/g,"\\'")}')" style="cursor:pointer">
+      <td class="dgroup svc"><span class="darw">${col?'▸':'▾'}</span>${d} <span class="dcount">${items.length}</span></td>
+      <td class="dgroup" colspan="${span-1}">${roll}</td></tr>`;
+    if(col) return;
+    items.forEach(p=>{
+      const gi=P.indexOf(p);
+      let cs='';
+      GROUPS.forEach(g=>{
+        const gc=CAPS.filter(c=>c.g===g.k);
+        if(expanded.has(g.k)){
+          gc.forEach((c,j)=>{
+            const st=STY[p.caps[c.k]];
+            const chg=hlUpdates&&p.chg.has(c.k);
+            const mk=chg?`<i class="umark"></i>`:'';
+            const star=c.hv?`<i class="hvstar">★</i>`:'';
+            const ti=(c.hv?'★ high-value · ':'')+(chg?`${c.k}: ${STY[p.prev[c.k]].l} → ${st.l} (updated since ${PREV_LABEL})`:`${c.k}: ${st.l}`);
+            const fr=`background:${g.c}0c;${j===0?`border-left:2px solid ${g.c};`:''}${j===gc.length-1?`border-right:2px solid ${g.c};`:''}`;
+            cs+=`<td class="hascell exgcell" style="${fr}"><span class="cell ${st.c}${chg?' upd':''}" title="${ti}">${st.g}${star}${mk}</span></td>`;
+          });
+        }else{
+          const gg=p.gcov[g.k];
+          const chgN=gc.filter(c=>p.chg.has(c.k)).length;
+          const seg=gc.map(c=>{const cu=hlUpdates&&p.chg.has(c.k);
+            return `<span class="${cu?'segupd':''}${c.hv?' seghv':''}" style="background:${SVAR[p.caps[c.k]]}" title="${c.hv?'★ high-value · ':''}${c.k}: ${STY[p.caps[c.k]].l}${cu?' (updated)':''}"></span>`;}).join('');
+          const flag=(hlUpdates&&chgN>0)?`<span class="updflag" title="${chgN} updated since ${PREV_LABEL}">✦${chgN}</span>`:'';
+          cs+=`<td class="hascell" onclick="event.stopPropagation();toggleGroup('${g.k}')" style="cursor:pointer">${flag}<span class="gcell">
+            <span class="gseg">${seg}</span>
+            <span class="gnum" style="color:${ratioColor(gg.full,gg.size)}">${gg.full}/${gg.size}</span></span></td>`;
+        }
+      });
+      const dlt=p.isNew?`<span class="delta dnew">NEW</span>`:p.delta>0?`<span class="delta">▲${p.delta}</span>`:'';
+      const S=SIG[p.sig];
+      rows+=`<tr onclick="openDrawer(${gi})"><td class="svc" style="box-shadow:inset 4px 0 0 ${S.c}"><span class="sigdot" style="background:${S.c}" title="${p.sig} · ${S.verb}">${S.ico}</span>${p.n}${dlt}</td>${cs}
+        <td class="covcell" style="color:${p.cov>=75?'var(--full)':p.cov>=45?'var(--partial)':'var(--ink-soft)'}">${p.cov}%</td>
+        <td>${tlBadge(p)}</td></tr>`;
+    });
+  });
+  return `<div class="matrix"><table><thead>${h0}${h1}${anyEx?h2:''}</thead><tbody>${rows}</tbody></table></div>`;
+}
+
+/* ---------- landscape ---------- */
+function renderLandscape(){
+  const data=filtered();
+  const doms=DOMAINS.filter(d=>data.some(p=>p.d===d));
+  return doms.map(d=>{
+    const items=data.filter(p=>p.d===d);
+    const avg=Math.round(items.reduce((a,p)=>a+p.cov,0)/items.length);
+    return `<div class="domain"><div class="domain-head"><h2>${d}</h2><span class="count">${items.length}</span>
+      <span class="rail"></span><span class="avg">avg coverage ${avg}%</span></div>
+      <div class="grid">${items.map(cardHTML).join('')}</div></div>`;
+  }).join('')||`<p style="color:var(--ink-soft)">No platforms match.</p>`;
+}
+function cardHTML(p){
+  const i=P.indexOf(p);
+  const strip=GROUPS.map(g=>{
+    const gc=CAPS.filter(c=>c.g===g.k);
+    const seg=gc.map(c=>{const cu=hlUpdates&&p.chg.has(c.k);
+      return `<span class="${cu?'segupd':''}" style="background:${SVAR[p.caps[c.k]]}" title="${c.k}: ${STY[p.caps[c.k]].l}${cu?' (updated)':''}"></span>`;}).join('');
+    return `<div class="gpill"><span class="gt">${g.k}</span><span class="gb">${seg}</span></div>`;
+  }).join('');
+  const cflag=hlUpdates?(p.isNew?`<span class="cardflag">NEW</span>`:p.delta>0?`<span class="cardflag" title="${p.delta} updated since ${PREV_LABEL}">✦ ${p.delta}</span>`:''):'';
+  return `<div class="card${hlUpdates&&(p.isNew||p.delta>0)?' newcard':''}" onclick="openDrawer(${i})">
+    ${cflag}
+    <div class="accent" style="background:${MC[p.m]}"></div>
+    <div class="top"><div><h3>${p.n}</h3><div class="owner">${p.d}</div></div>${tlBadge(p)}</div>
+    <div class="cov">
+      <div class="ring" style="--p:${p.cov};position:relative"><b>${p.cov}%</b></div>
+      <div class="lab"><strong>${p.full} of ${CAPS.length}</strong> capabilities available<br>${p.partial} partial · ${CAPS.length-p.full-p.partial} not offered</div>
+    </div>
+    <div class="grpstrip">${strip}</div>
+    <div class="metaline"><span>Maturity <span class="ml" style="color:${MC[p.m]}">L${p.m} · ${MAT[p.m]}</span></span><span>Timeline <span class="ml">${p.tl||'—'}</span></span></div>
+  </div>`;
+}
+
+function render(){
+  document.getElementById('content').innerHTML = view==='matrix'?renderMatrix():view==='changes'?renderChanges():view==='arch'?renderArch():renderLandscape();
+}
+
+/* ---------- changebar + changelog ---------- */
+function renderChangebar(){
+  document.getElementById('changebar').innerHTML=`
+    <div class="cb-left"><span class="cb-dot"></span>
+      <div><strong>Updated for ${CUR_LABEL}</strong><span class="cb-sub">Changes since ${PREV_LABEL}</span></div></div>
+    <div class="cb-stats">
+      <span><b>${CHANGES.newp.length}</b> new platforms</span>
+      <span><b>${CHANGES.upgCells}</b> capabilities improved</span>
+      <span><b>${CHANGES.upg.length}</b> services advanced</span>
+    </div>
+    <button class="cb-btn" onclick="setView('changes')">View changelog →</button>`;
+}
+function pill(status){const st=STY[status];return `<span class="dpill" style="background:${SVAR[status]}22;color:${SVAR[status]};border-color:${SVAR[status]}55">${st.l}</span>`;}
+
+/* ---------- Architecture Simplification (Buy / Hold / Sell) ---------- */
+function sigBadge(p){const s=SIG[p.sig];return `<span class="sig" style="background:${s.c}1a;color:${s.c};border-color:${s.c}55">${s.ico} ${s.lab}</span>`;}
+function renderArch(){
+  const data=filtered();
+  const tot=data.length||1;
+  const cnt={Buy:0,Hold:0,Sell:0};data.forEach(p=>cnt[p.sig]++);
+  const pct=s=>Math.round(cnt[s]/tot*100);
+  // summary tiles
+  const tiles=['Buy','Hold','Sell'].map(s=>{const S=SIG[s];return `
+    <div class="atile" style="border-top:3px solid ${S.c}">
+      <div class="at-h"><span class="sig" style="background:${S.c}1a;color:${S.c};border-color:${S.c}55">${S.ico} ${S.lab}</span><span class="at-verb">${S.verb}</span></div>
+      <div class="at-n">${cnt[s]}<small>/ ${tot}</small></div>
+      <div class="at-p">${pct(s)}% of services</div>
+    </div>`;}).join('');
+  const bar=`<div class="sbar">${['Buy','Hold','Sell'].map(s=>`<span style="width:${pct(s)}%;background:${SIG[s].c}" title="${s}: ${cnt[s]}"></span>`).join('')}</div>`;
+  // three columns
+  const col=s=>{
+    const items=data.filter(p=>p.sig===s).sort((a,b)=>a.d.localeCompare(b.d)||a.n.localeCompare(b.n));
+    const S=SIG[s];
+    const cards=items.map(p=>{const i=P.indexOf(p);return `
+      <div class="scard" onclick="openDrawer(${i})">
+        <div class="sc-top"><b>${p.n}</b>${p.tl&&p.tl!=='NA'?`<span class="sc-tl">${p.tl}</span>`:''}</div>
+        <div class="sc-sub">${p.d}</div>
+        <div class="sc-why">${p.sigWhy}</div>
+      </div>`;}).join('')||`<div class="sc-empty">None</div>`;
+    return `<div class="bcol">
+      <div class="bcol-head" style="background:${S.c}">${S.ico} ${S.lab} · ${S.verb}<span class="bc-count">${items.length}</span></div>
+      <div class="bcol-body">${cards}</div></div>`;
+  };
+  return `<div class="archwrap">
+    <div class="ahead">
+      <div><h2>Architecture Simplification</h2>
+        <p>Suggested <b>Buy / Hold / Sell</b> signal per service — <span style="color:${SIG.Sell.c};font-weight:700">${cnt.Sell} to retire/migrate</span> is the simplification opportunity. Signals are a starting point; adjust per service.</p></div>
+    </div>
+    <div class="atiles">${tiles}</div>
+    ${bar}
+    <div class="board">${col('Buy')}${col('Hold')}${col('Sell')}</div>
+  </div>`;
+}
+
+function renderChanges(){
+  const newp=CHANGES.newp;
+  const upg=CHANGES.upg.slice().sort((a,b)=>b.upg.length-a.upg.length);
+  let html=`<div class="clog">`;
+  html+=`<div class="clog-head"><h2>What's changed since ${PREV_LABEL}</h2>
+    <span class="clog-meta">${newp.length} new · ${CHANGES.upgCells} capabilities improved across ${upg.length} services</span></div>`;
+  if(newp.length){
+    html+=`<div class="clog-sec"><div class="clog-t"><span class="tg tg-new">NEW</span> Platforms added this quarter</div>`;
+    newp.forEach(p=>{
+      const i=P.indexOf(p);
+      html+=`<div class="clog-row" onclick="openDrawer(${i})">
+        <div class="cr-main"><span class="cr-dot dn"></span><div><b>${p.n}</b><span class="cr-sub">${p.d}</span></div></div>
+        <div class="cr-right">${tlBadge(p)} <span class="cr-delta">${p.full+p.partial} capabilities live</span></div></div>`;
+    });
+    html+=`</div>`;
+  }
+  html+=`<div class="clog-sec"><div class="clog-t"><span class="tg tg-up">▲</span> Capabilities advanced</div>`;
+  upg.forEach(p=>{
+    const i=P.indexOf(p);
+    const chips=p.upg.map(u=>`<span class="upgrade">${u.k}: ${pill(u.from)}<span class="arr">→</span>${pill(u.to)}</span>`).join('');
+    html+=`<div class="clog-row col" onclick="openDrawer(${i})">
+      <div class="cr-top"><div class="cr-main"><span class="cr-dot du"></span><div><b>${p.n}</b><span class="cr-sub">${p.d}</span></div></div>
+        <span class="cr-delta up">+${p.upg.length} improved</span></div>
+      <div class="upgrades">${chips}</div></div>`;
+  });
+  html+=`</div></div>`;
+  return html;
+}
+
+
+/* ---------- drawer ---------- */
+function openDrawer(i){
+  const p=P[i];
+  const groups=GROUPS.map(g=>{
+    const gc=CAPS.filter(c=>c.g===g.k);const gg=p.gcov[g.k];
+    const rows=gc.map(c=>{const st=STY[p.caps[c.k]];return `<div class="caprow">
+      <span class="ci ${st.c}">${st.g}</span><span class="cn">${c.hv?'<span class="hvstar-lg">★</span> ':''}${c.k}</span>
+      <span class="cs" style="color:${SVAR[p.caps[c.k]]}">${st.l}</span></div>`;}).join('');
+    return `<div class="gsec"><div class="gsec-h" style="--gc:${g.c}"><span class="gc">${g.k}</span>
+      <span style="color:${ratioColor(gg.full,gg.size)}">${gg.full}/${gg.size}</span></div>${rows}</div>`;
+  }).join('');
+  document.getElementById('drawerBody').innerHTML=`
+    <div class="dom">${p.d}</div><h2>${p.n}</h2>${tlBadge(p)} ${sigBadge(p)}
+    <div class="sig-why">${p.sigWhy}</div>
+    <div class="meta" style="margin-top:16px">
+      <div><div class="k">Capability coverage</div><div class="v" style="color:var(--full)">${p.full}/${CAPS.length} · ${p.cov}%</div></div>
+      <div><div class="k">Maturity <span style="font-weight:400;text-transform:none">(sample)</span></div><div class="v" style="color:${MC[p.m]}">L${p.m} · ${MAT[p.m]}</div></div>
+      <div><div class="k">Timeline</div><div class="v" style="font-size:14px">${p.tl||'—'}</div></div>
+      <div><div class="k">Service Category</div><div class="v" style="font-size:13px">${p.d}</div></div>
+    </div>
+    ${groups}`;
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('scrim').classList.add('open');
+}
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('scrim').classList.remove('open');}
+function toggleTheme(){const h=document.documentElement,dark=h.getAttribute('data-theme')==='dark';
+  h.setAttribute('data-theme',dark?'light':'dark');document.getElementById('themeBtn').textContent=dark?'◐ Dark':'◑ Light';}
+
+document.getElementById('asof').innerHTML='As of '+CUR_LABEL+'<br>'+P.length+' services · '+CAPS.length+' capabilities';
+renderKPIs();renderChips();renderChangebar();render();
+</script>
+</body>
+</html>
