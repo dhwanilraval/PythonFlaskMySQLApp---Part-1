@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture Simplification</title>
+<style>
+  :root{
+    --rbc-blue:#005DAA;--rbc-blue-dark:#003168;--rbc-gold:#FEDF01;
+    --bg:#f4f6f9;--panel:#ffffff;--ink:#0f1b2d;--ink-soft:#54647a;--line:#e3e8ef;
+    --shadow:0 1px 2px rgba(16,30,54,.06),0 8px 24px rgba(16,30,54,.06);
+    --buy:#1f9d57;--hold:#e8a417;--sell:#d64545;--migrate:#4a9de0;--emerging:#0ea371;--emerging-bd:#f97316;
+  }
+  [data-theme="dark"]{
+    --bg:#0c1420;--panel:#131f30;--ink:#eef3f9;--ink-soft:#93a4ba;--line:#22344b;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+    --buy:#3fbd77;--hold:#e8b23f;--sell:#e0685f;--migrate:#5aa9e6;--emerging:#2dd4a7;--emerging-bd:#fb923c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  header{background:linear-gradient(120deg,var(--rbc-blue-dark),var(--rbc-blue));color:#fff;
+    padding:22px 32px;position:sticky;top:0;z-index:50;box-shadow:0 4px 20px rgba(0,49,104,.25)}
+  .head-row{display:flex;align-items:center;gap:16px;max-width:1560px;margin:0 auto}
+  .logo{width:40px;height:40px;border-radius:9px;background:var(--rbc-gold);color:var(--rbc-blue-dark);
+    display:grid;place-items:center;font-weight:800;font-size:18px;flex:none}
+  .title h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.2px}
+  .title p{margin:2px 0 0;font-size:12.5px;opacity:.85}
+  .head-spacer{flex:1}
+  .btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;border-radius:8px;
+    padding:8px 12px;font-size:12.5px;cursor:pointer;font-weight:600}
+  .btn:hover{background:rgba(255,255,255,.24)}
+  main{max-width:1560px;margin:0 auto;padding:24px 32px 60px}
+
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 16px;box-shadow:var(--shadow)}
+  .kpi .lab{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-soft);font-weight:600}
+  .kpi .val{font-size:26px;font-weight:800;margin-top:5px;letter-spacing:-1px;display:flex;align-items:baseline;gap:4px}
+  .kpi .val small{font-size:13px;font-weight:600;color:var(--ink-soft)}
+  .kpi .sub{font-size:11px;color:var(--ink-soft);margin-top:3px}
+
+  .controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-bottom:14px}
+  .search{flex:1;min-width:200px;position:relative}
+  .search input{width:100%;padding:9px 13px 9px 34px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font-size:14px}
+  .search svg{position:absolute;left:10px;top:10px;opacity:.5}
+  .chip{border:1px solid var(--line);background:var(--panel);color:var(--ink-soft);border-radius:20px;padding:6px 13px;font-size:12px;cursor:pointer;font-weight:600;white-space:nowrap}
+  .chip.active{background:var(--rbc-blue);border-color:var(--rbc-blue);color:#fff}
+  .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{border:0;background:var(--panel);color:var(--ink-soft);padding:8px 14px;font-size:12.5px;cursor:pointer;font-weight:600}
+  .seg button.active{background:var(--rbc-blue);color:#fff}
+  /* swimlane board */
+  .lanes{display:flex;flex-direction:column;gap:14px}
+  .lane{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--lc,var(--line));
+    border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+  .lane-h{display:flex;align-items:center;gap:9px;padding:11px 16px;border-bottom:1px solid var(--line);
+    font-weight:800;font-size:14px}
+  .lane-dot{width:11px;height:11px;border-radius:3px;flex:none}
+  .lane-name{flex:1}
+  .lane-n{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:1px 10px;font-size:12px;color:var(--ink-soft)}
+  .lane-cards{padding:12px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:9px}
+  .lane-empty{color:var(--ink-soft);font-size:12px;padding:6px 2px}
+  .swcard{border:1px solid var(--line);border-left:3px solid var(--sc,var(--line));border-radius:9px;padding:9px 11px;cursor:pointer;background:var(--panel)}
+  .swcard:hover{background:var(--bg);transform:translateY(-1px)}
+  .swcard b{font-size:12.5px;font-weight:650;display:block;line-height:1.3;margin-bottom:4px}
+  .swmeta{display:flex;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--ink-soft)}
+  .swmeta .swscore{font-weight:700;white-space:nowrap}
+  .sigfilter{display:flex;gap:6px}
+  .sigchip{border:1px solid var(--line);background:var(--panel);border-radius:20px;padding:6px 12px;font-size:12px;cursor:pointer;font-weight:700}
+  .sigchip.active{color:#fff}
+
+  .layout{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}
+  @media(max-width:1080px){.layout{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(3,1fr)}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+  .card-h{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+  .card-h h2{margin:0;font-size:15px;font-weight:700}
+  .card-h .hint{font-size:11.5px;color:var(--ink-soft)}
+
+  /* quadrant */
+  .quadwrap{padding:16px 18px 8px}
+  svg.quad{width:100%;height:auto;display:block}
+  .qzone-label{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;opacity:.9;
+    paint-order:stroke;stroke:var(--panel);stroke-width:3px;stroke-linejoin:round}
+  .qaxis{font-size:9.5px;fill:var(--ink-soft);font-weight:600}
+  .pt{cursor:pointer;transition:r .1s}
+  .pt:hover{stroke:var(--ink);stroke-width:1.5}
+  .pt.emg{stroke:var(--emerging-bd);stroke-width:2.8px}
+  .qlabel{font-size:9px;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--panel);stroke-width:2.6px;stroke-linejoin:round}
+  .qnote{font-size:11px;color:var(--ink-soft);padding:2px 18px 14px}
+  .quadkey{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:6px 18px 16px}
+  .qk{border:1px solid var(--line);border-left:4px solid var(--qc);border-radius:9px;padding:8px 11px;cursor:pointer;background:var(--panel)}
+  .qk:hover{background:var(--bg)}
+  .qk.sel{background:var(--bg);box-shadow:0 0 0 1px var(--qc)}
+  .qk-h{display:flex;align-items:center;gap:7px;font-size:13px}
+  .qk-dot{width:11px;height:11px;border-radius:3px;flex:none}
+  .qk-h small{color:var(--ink-soft);font-weight:600}
+  .qk-n{margin-left:auto;background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:0 8px;font-size:11px;color:var(--ink-soft);font-weight:700}
+  .qk.sel .qk-n{margin-left:auto}
+  .qk-x{color:var(--qc);font-weight:800;margin-left:6px}
+  .qk-desc{display:block;font-size:11px;color:var(--ink-soft);margin-top:4px}
+
+  /* list */
+  .tlist{max-height:560px;overflow-y:auto}
+  .trow{display:flex;align-items:center;gap:11px;padding:10px 16px;border-bottom:1px solid var(--line);cursor:pointer}
+  .trow:hover{background:var(--bg)}
+  .tsig{width:26px;height:26px;border-radius:7px;flex:none;display:grid;place-items:center;color:#fff;font-weight:800;font-size:11px}
+  .tmain{flex:1;min-width:0}
+  .tmain b{font-size:13px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tmain span{font-size:11px;color:var(--ink-soft)}
+  .ttime{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;padding:2px 7px;border-radius:5px;white-space:nowrap}
+  .tscore{font-size:11px;color:var(--ink-soft);text-align:right;white-space:nowrap;font-weight:600}
+
+  .badge{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap;text-transform:uppercase;letter-spacing:.4px;color:#fff}
+
+  /* drawer */
+  .scrim{position:fixed;inset:0;background:rgba(6,14,26,.45);opacity:0;pointer-events:none;transition:opacity .2s;z-index:80}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:520px;max-width:94vw;background:var(--panel);
+    box-shadow:-10px 0 40px rgba(6,14,26,.3);transform:translateX(100%);transition:transform .25s;z-index:90;overflow-y:auto;padding:26px}
+  .drawer.open{transform:translateX(0)}
+  .drawer .x{position:absolute;top:18px;right:18px;border:0;background:var(--bg);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px;color:var(--ink)}
+  .dcat{font-size:12px;color:var(--ink-soft);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .drawer h2{margin:5px 0 8px;font-size:21px;letter-spacing:-.3px}
+  .decision{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .conf{font-size:11px;color:var(--ink-soft);font-weight:600}
+  .reco{font-size:14px;font-weight:600;background:var(--bg);border:1px solid var(--line);border-left:4px solid var(--sig);
+    border-radius:10px;padding:11px 14px;margin:12px 0 18px}
+  .sec-t{font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-soft);font-weight:800;margin:20px 0 10px;display:flex;justify-content:space-between}
+  .scorecard{display:grid;gap:14px}
+  .scblock{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+  .scblock .h{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;font-weight:800;margin-bottom:9px}
+  .scblock .h .n{font-size:15px;color:var(--ink)}
+  .dim{display:flex;align-items:center;gap:9px;margin-bottom:7px;font-size:12px}
+  .dim .dn{width:132px;color:var(--ink-soft);font-weight:600}
+  .dim .dt{flex:1;height:7px;background:var(--line);border-radius:4px;overflow:hidden}
+  .dim .dt>i{display:block;height:100%;border-radius:4px}
+  .dim .dv{width:26px;text-align:right;font-weight:800;font-size:11.5px}
+  .narr{font-size:13.5px;line-height:1.6;color:var(--ink)}
+  .cons-h{font-size:13.5px;font-weight:700;margin-bottom:4px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .illus{font-size:10px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px}
+  .cons-sub{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft);font-weight:700;margin:10px 0 5px}
+  .tagrow{display:flex;flex-wrap:wrap;gap:6px}
+  .butag{font-size:11px;font-weight:700;background:rgba(0,93,170,.1);color:var(--rbc-blue);border-radius:20px;padding:3px 10px}
+  [data-theme="dark"] .butag{background:rgba(90,169,230,.16);color:#7fc0f5}
+  .apptag{font-size:11px;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:3px 9px;color:var(--ink)}
+  .narr.placeholder{color:var(--ink-soft);font-style:italic}
+  .meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+  .meta div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+  .meta .k{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft);font-weight:600}
+  .meta .v{font-size:13px;font-weight:700;margin-top:2px}
+  .erisk{display:inline-block;font-size:11px;font-weight:800;border-radius:5px;padding:1px 7px;color:#fff}
+
+  footer{max-width:1560px;margin:0 auto;padding:0 32px 40px;color:var(--ink-soft);font-size:11.5px}
+  .note{background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:12px 16px;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="head-row">
+    <div class="logo">RBC</div>
+    <div class="title"><h1>Architecture Simplification</h1>
+      <p>Buy / Hold / Sell rationalization workbench · Invest / Maintain / Re-platform / Retire · <em>industry-baseline analysis — RBC-specific view TBC</em></p></div>
+    <div class="head-spacer"></div>
+    <button class="btn" onclick="exportJSON()">⭳ Export</button>
+    <button class="btn" onclick="toggleTheme()" id="themeBtn">◐ Dark</button>
+  </div>
+</header>
+
+<main>
+  <section class="kpis" id="kpis"></section>
+
+  <div class="controls">
+    <div class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+      <input id="search" placeholder="Search technologies…" oninput="render()">
+    </div>
+    <div class="sigfilter" id="sigfilter"></div>
+  </div>
+  <div class="controls" id="catChips"></div>
+  <div class="controls">
+    <div class="seg" id="viewseg">
+      <button class="active" data-view="board" onclick="setView('board')">Quadrant &amp; list</button>
+      <button data-view="swim" onclick="setView('swim')">Swimlane</button>
+    </div>
+    <span id="laneCtl" style="display:none;align-items:center;gap:8px">
+      <span style="font-size:12px;color:var(--ink-soft);font-weight:600">Lanes:</span>
+      <div class="seg" id="laneseg">
+        <button class="active" data-lane="sig" onclick="setLane('sig')">Signal</button>
+        <button data-lane="time" onclick="setLane('time')">TIME</button>
+        <button data-lane="cat" onclick="setLane('cat')">Category</button>
+      </div>
+    </span>
+  </div>
+
+  <div id="boardView">
+    <div class="layout">
+      <div class="card">
+        <div class="card-h"><h2>Value × Fit quadrant</h2><span class="hint">Click a point for detail · click a quadrant to filter the list</span></div>
+        <div class="quadwrap" id="quadwrap"></div>
+        <div class="quadkey" id="quadkey"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>Technologies</h2><span class="hint" id="listcount"></span></div>
+        <div class="tlist" id="tlist"></div>
+      </div>
+    </div>
+  </div>
+  <div id="swimView" style="display:none">
+    <div id="swimhost"></div>
+  </div>
+</main>
+
+<footer>
+  <div class="note"><strong>All 95 technologies loaded with an industry-baseline Buy/Hold/Sell view.</strong>
+  Each dossier reflects the general market direction for that technology (vendor trajectory, cloud-native fit, common migration target) — <b>not yet RBC-specific</b>.
+  Business-value / technical-fit scores are indicative placeholders; the RBC-specific rationale, scores and owners are TBC and edited in the <code>ANALYSIS</code> block. Use <b>Export</b> to snapshot the data.</div>
+</footer>
+
+<div class="scrim" id="scrim" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer"><button class="x" onclick="closeDrawer()">✕</button><div id="drawerBody"></div></div>
+
+<script>
+/* =================== DATA =================== */
+/* Technology list (from the service rationalization sheet) */
+const P=[
+ {n:'Middleware: Content Manager',d:'Application',tl:"Q4'2029"},
+ {n:'Middleware: Royal Bank Data Mover',d:'Application',tl:"Q4'2029"},
+ {n:'Middleware: Websphere Liberty',d:'Application',tl:"Q2'2026"},
+ {n:'Middleware: GDM/NGM',d:'Application',tl:"Q4'2029"},
+ {n:'ISAM',d:'Application',tl:"Q2'2027"},
+ {n:'IBMi',d:'Application',tl:"Q4'2029"},
+ {n:'Middleware: Websphere MainFrame',d:'Application',tl:"Q2'2026"},
+ {n:'Middleware: PEGA Systems',d:'Application',tl:"Q2'2027"},
+ {n:'Middleware: Websphere Distributed',d:'Application',tl:"Q2'2026"},
+ {n:'Middleware: BizTalk',d:'Application',tl:"Q4'2029"},
+ {n:'Middleware: BusinessWorks',d:'Application',tl:"Q4'2029"},
+ {n:'Network: Niche Firewall XML Gateway',d:'Application',tl:"Q4'2029"},
+ {n:'Enterprise Systems Management',d:'Application',tl:"Q4'2027"},
+ {n:'Middleware: OnDemand',d:'Application',tl:"Q4'2029"},
+ {n:'HP NonStop - Bess and OMS',d:'Application',tl:"Q4'2029"},
+ {n:'Middleware: IMS',d:'Application',tl:"Q4'2029"},
+ {n:'TS&O: Dedicated to Application',d:'Application',tl:"Q4'2029"},
+ {n:'Network: NetCON',d:'Application',tl:"Q4'2029"},
+ {n:'HP NonStop - Rimms',d:'Application',tl:"Q4'2029"},
+ {n:'Middleware: BusinessWare',d:'Application',tl:"Q4'2029"},
+ {n:'Middleware: Message Broker',d:'Application',tl:"Q1'2027"},
+ {n:'HP NonStop - Moneris',d:'Application',tl:"Q4'2029"},
+ {n:'Middleware: CICS',d:'Application',tl:"Q4'2029"},
+ {n:'Middleware: JBOSS: EAP',d:'Application',tl:"Q3'2026"},
+ {n:'Middleware: JBOSS: EWS',d:'Application',tl:"Q2'2026"},
+ {n:'Middleware: ConnectDirect',d:'Application',tl:"Q4'2029"},
+ {n:'Network: E-Commerce',d:'Connectivity',tl:"Q3'2027"},
+ {n:'Network: Extranet',d:'Connectivity',tl:"Q4'2026"},
+ {n:'Public DNS',d:'Connectivity',tl:"Q4'2026"},
+ {n:'Content Delivery (CDN)',d:'Connectivity',tl:"Q2'2027"},
+ {n:'Datacenter Networking',d:'Connectivity',tl:"Q3'2026"},
+ {n:'ABM Network',d:'Connectivity',tl:'NA'},
+ {n:'myRemote PC',d:'Connectivity',tl:"Q4'2029"},
+ {n:'Dataline: International',d:'Connectivity',tl:"Q4'2029"},
+ {n:'Branch Network',d:'Connectivity',tl:"Q4'2029"},
+ {n:'DNS',d:'Connectivity',tl:"Q2'2026"},
+ {n:'Network Firewall (GCS Partnership)',d:'Connectivity',tl:"Q1'2027"},
+ {n:'Network Observability (TBD)',d:'Connectivity',tl:"Q2'2026"},
+ {n:'Automated Application Balancing',d:'Connectivity',tl:"Q3'2026"},
+ {n:'Elasticsearch',d:'Cloud',tl:"Q2'2027"},
+ {n:'OpenShift',d:'Cloud',tl:'NA'},
+ {n:'Kafka',d:'Cloud',tl:"Q3'2026"},
+ {n:'Caching',d:'Cloud',tl:"Q4'2026"},
+ {n:'Cloud - PCF',d:'Cloud',tl:'NA'},
+ {n:'Logging',d:'Cloud',tl:"Q3'2026"},
+ {n:'Public Cloud - AWS',d:'Cloud',tl:'NA'},
+ {n:'Diamanti: MongoDB',d:'Database',tl:"Q2'2026"},
+ {n:'Database: Sybase',d:'Database',tl:"Q4'2029"},
+ {n:'Database: Oracle',d:'Database',tl:"Q4'2027"},
+ {n:'Oracle ASO',d:'Database',tl:"Q4'2029"},
+ {n:'Database: SCON',d:'Database',tl:"Q4'2026"},
+ {n:'Database: SQL Server',d:'Database',tl:"Q4'2026"},
+ {n:'Singlestore (MemSQL)',d:'Database',tl:"Q4'2027"},
+ {n:'Database: OCON Intel',d:'Database',tl:"Q4'2027"},
+ {n:'Enterprise Database Administration',d:'Database',tl:"Q4'2029"},
+ {n:'Database: OCON AIX',d:'Database',tl:"Q4'2027"},
+ {n:'Database: DB2 (Distributed)',d:'Database',tl:"Q4'2027"},
+ {n:'Database: SyCON',d:'Database',tl:"Q4'2029"},
+ {n:'MariaDB',d:'Database',tl:"Q2'2026"},
+ {n:'MongoDB',d:'Database',tl:"Q2'2026"},
+ {n:'PostgreDB',d:'Database',tl:"Q2'2026"},
+ {n:'SQL Server',d:'Database',tl:'NA'},
+ {n:'ClickHouse',d:'Database',tl:'NA'},
+ {n:'Storage: NAS',d:'Storage',tl:"Q2'2027"},
+ {n:'File Hosting Service',d:'Storage',tl:"Q2'2027"},
+ {n:'Storage: Backup and Recovery',d:'Storage',tl:"Q2'2027"},
+ {n:'Storage: SAN',d:'Storage',tl:"Q2'2027"},
+ {n:'Storage: Mainframe',d:'Storage',tl:'NA'},
+ {n:'Object Storage',d:'Storage',tl:"Q3'2026"},
+ {n:'AI Farm',d:'Compute',tl:"Q4'2029"},
+ {n:'M/F Specialty CPU (zIIP)',d:'Compute',tl:'NA'},
+ {n:'M/F General CPU (GCP)',d:'Compute',tl:'NA'},
+ {n:'Diamanti',d:'Compute',tl:"Q2'2026"},
+ {n:'Server Hardware: X-86 Windows',d:'Compute',tl:"Q3'2026"},
+ {n:'Server Hardware: X-86 Linux',d:'Compute',tl:"Q3'2027"},
+ {n:'AIX Memory',d:'Compute',tl:"Q3'2027"},
+ {n:'CM: Premises SLER',d:'Compute',tl:'NA'},
+ {n:'Server Management: Linux Physical',d:'Compute',tl:'NA'},
+ {n:'Server Management: Windows Physical',d:'Compute',tl:"Q4'2029"},
+ {n:'Server Support: Windows Facilities and Network',d:'Compute',tl:"Q4'2029"},
+ {n:'Server Support: Linux Facilities and Network',d:'Compute',tl:'NA'},
+ {n:'Server Hardware: Solaris',d:'Compute',tl:'NA'},
+ {n:'Server Management: Solaris',d:'Compute',tl:'NA'},
+ {n:'Server Management: AIX',d:'Compute',tl:'NA'},
+ {n:'AIX CPU',d:'Compute',tl:"Q4'2027"},
+ {n:'VM Storage',d:'Compute',tl:"Q1'2026"},
+ {n:'VM Compute - Windows',d:'Compute',tl:"Q1'2026"},
+ {n:'VM Compute - Linux',d:'Compute',tl:"Q1'2026"},
+ {n:'VM Dedicated',d:'Compute',tl:"Q1'2026"},
+ {n:'SRE & Incident Management',d:'Operations',tl:'NA'},
+ {n:'ServiceNow',d:'Operations',tl:'NA'},
+ {n:'myMarketPlace',d:'Operations',tl:'NA'},
+ {n:'myMobility',d:'Client Computing',tl:'NA'},
+ {n:'Middleware: Messaging (z/OS)',d:'Mainframe',tl:"Q1'2027"},
+ {n:'Middleware: OnDemand (z/OS)',d:'Mainframe',tl:"Q4'2029"},
+ {n:'z/OS Connect',d:'Mainframe',tl:"Q4'2029"},
+ {n:'Database: DB2 (z/OS)',d:'Mainframe',tl:"Q4'2027"},
+];
+
+/* ---- Manual signal overrides (win over derived) ---- */
+const SIG_OVERRIDE={'Cloud - PCF':'Sell'};
+
+/* ---- Detailed analysis overrides (fill these in over time) ----
+   Keyed by technology name. Any field left out falls back to a generated placeholder.
+   Fields: rationale, disposition, target, deps, effort(L/M/H), risk(L/M/H), cost(L/M/H),
+           owner, status, reviewed, and optional score overrides bv{...} tf{...} */
+const ANALYSIS={
+ /* ===== Application ===== */
+ "Middleware: Content Manager":{sig:"Sell",rationale:"Legacy enterprise content management (IBM CM / FileNet lineage). The industry has shifted to cloud content services and object storage with metadata, so on-prem ECM stacks are being consolidated and retired.",disposition:"Migrate content to a cloud content platform, then decommission.",target:"Cloud content services / object storage + metadata",effort:"H",risk:"M",cost:"M"},
+ "Middleware: Royal Bank Data Mover":{sig:"Sell",rationale:"Internal bespoke data-movement tool. Custom movers are typically replaced by standardized managed file transfer and event/streaming integration to cut maintenance and key-person risk.",disposition:"Replace with strategic MFT / streaming integration.",target:"Managed File Transfer + Kafka/event streaming",effort:"M",risk:"M",cost:"M"},
+ "Middleware: Websphere Liberty":{sig:"Hold",rationale:"Modern, lightweight WAS runtime (Open Liberty) that containerizes well and remains vendor-supported. It is the strategic destination for traditional WebSphere workloads rather than a retirement target.",disposition:"Maintain; containerize onto the strategic runtime platform.",target:"Liberty on OpenShift",effort:"L",risk:"L",cost:"L"},
+ "Middleware: GDM/NGM":{sig:"Sell",rationale:"Internal messaging/data-gateway component. Bespoke gateways are commonly retired in favour of standard API and event platforms.",disposition:"Consolidate onto API gateway / event streaming.",target:"API gateway + Kafka",effort:"M",risk:"M",cost:"M"},
+ "ISAM":{sig:"Sell",rationale:"IBM Security Access Manager is a legacy web-access-management product; the market has moved to cloud IdPs and modern CIAM/standards (OIDC/SAML) with adaptive auth.",disposition:"Migrate to the strategic enterprise IAM/IdP.",target:"Modern IdP (Entra ID / Okta / ForgeRock)",effort:"M",risk:"M",cost:"M"},
+ "IBMi":{sig:"Sell",rationale:"IBM i (AS/400 lineage) is a stable but niche midrange platform with a shrinking skills pool. Industry direction is to modernize/re-platform workloads to Linux/cloud.",disposition:"Re-platform applications; retire the estate.",target:"Linux / cloud-native rewrite",effort:"H",risk:"H",cost:"H"},
+ "Middleware: Websphere MainFrame":{sig:"Sell",rationale:"Traditional WebSphere app-serving on z/OS is expensive and off the strategic path; app-serving is moving to distributed containers.",disposition:"Migrate app tier off mainframe to containers.",target:"Liberty / Spring Boot on OpenShift",effort:"H",risk:"H",cost:"H"},
+ "Middleware: PEGA Systems":{sig:"Hold",rationale:"Pega is a strategic BPM / case-management / low-code platform still widely invested in across financial services. Keep, but govern licensing and cloud footprint.",disposition:"Maintain; move toward Pega Cloud where sensible.",target:"Pega Cloud",effort:"M",risk:"M",cost:"M"},
+ "Middleware: Websphere Distributed":{sig:"Sell",rationale:"Heavyweight traditional WAS ND. The industry is moving to lightweight runtimes and containers; this is a classic re-platform candidate.",disposition:"Migrate to Liberty/containers, then retire traditional WAS.",target:"Liberty on OpenShift",effort:"H",risk:"M",cost:"M"},
+ "Middleware: BizTalk":{sig:"Sell",rationale:"Microsoft BizTalk Server is on a wind-down path; Microsoft steers integration to Azure Integration Services / Logic Apps. Skills and support are declining.",disposition:"Re-platform integrations to modern iPaaS / API-led.",target:"Azure Integration Services / API-led integration",effort:"H",risk:"M",cost:"M"},
+ "Middleware: BusinessWorks":{sig:"Sell",rationale:"TIBCO BusinessWorks ESB represents the heavyweight-ESB era; the market has moved to API-led, event streaming and lighter cloud integration.",disposition:"Decompose ESB flows to APIs/events; retire.",target:"API gateway + Kafka / iPaaS",effort:"H",risk:"M",cost:"M"},
+ "Network: Niche Firewall XML Gateway":{sig:"Sell",rationale:"Dedicated XML/SOA security gateways (DataPower-style) are largely superseded by modern API gateways and service mesh with built-in security.",disposition:"Consolidate onto the strategic API gateway.",target:"Enterprise API gateway",effort:"M",risk:"M",cost:"M"},
+ "Enterprise Systems Management":{sig:"Sell",rationale:"Legacy systems-management/monitoring suites (Tivoli/BMC lineage) are being replaced by modern observability platforms with better cloud and container coverage.",disposition:"Migrate to the strategic observability stack.",target:"Modern observability (Datadog / Dynatrace / Prometheus+Grafana)",effort:"M",risk:"M",cost:"M"},
+ "Middleware: OnDemand":{sig:"Sell",rationale:"IBM Content Manager OnDemand is legacy report/statement archival; industry direction is cloud object storage with search/retention services.",disposition:"Migrate archives to cloud storage + retention service.",target:"Object storage + archival service",effort:"M",risk:"M",cost:"M"},
+ "HP NonStop - Bess and OMS":{sig:"Sell",rationale:"Proprietary Tandem/NonStop fault-tolerant platform with a shrinking skills base and premium lock-in. Business function stays critical, but the platform is off the strategic path and needs re-platforming.",disposition:"Retire once payments/OMS modernization delivers a cloud-native target.",target:"Cloud-native payments/OMS platform (program-defined)",effort:"H",risk:"H",cost:"H"},
+ "Middleware: IMS":{sig:"Sell",rationale:"IMS (hierarchical DB/TM on mainframe) is extremely sticky and high-value but off-strategy; industry pattern is tolerate near-term, expose via APIs, and migrate on a long horizon.",disposition:"Tolerate near-term; API-enable; migrate long-term.",target:"Relational/cloud data + service APIs",effort:"H",risk:"H",cost:"H"},
+ "TS&O: Dedicated to Application":{sig:"Hold",rationale:"Internal dedicated technology-services/infrastructure allocation. Typically retained but rationalized as workloads move to shared/cloud platforms.",disposition:"Maintain; fold into shared platforms over time.",target:"Shared cloud platform",effort:"M",risk:"L",cost:"M"},
+ "Network: NetCON":{sig:"Sell",rationale:"Internal network control/console tooling. Bespoke network tooling is usually retired in favour of vendor and cloud-native network management.",disposition:"Consolidate onto strategic network management tooling.",target:"Modern network management",effort:"M",risk:"M",cost:"L"},
+ "HP NonStop - Rimms":{sig:"Sell",rationale:"NonStop-hosted application sharing the same platform-exit rationale: niche, premium lock-in, scarce skills.",disposition:"Re-platform with the NonStop exit program; retire.",target:"Cloud-native replacement (program-defined)",effort:"H",risk:"H",cost:"H"},
+ "Middleware: BusinessWare":{sig:"Sell",rationale:"Legacy EAI/integration middleware. Superseded by API-led integration and event streaming.",disposition:"Migrate flows to APIs/events; retire.",target:"API gateway + Kafka",effort:"H",risk:"M",cost:"M"},
+ "Middleware: Message Broker":{sig:"Sell",rationale:"IBM Integration Bus / Message Broker is heavyweight ESB-era integration; the strategic direction is lighter integration (ACE/containers) or API-led and event streaming.",disposition:"Modernize to containerized ACE or API/events; retire broker.",target:"API-led integration / Kafka",effort:"H",risk:"M",cost:"M"},
+ "HP NonStop - Moneris":{sig:"Sell",rationale:"Payments processing on NonStop; critical function on a niche, high-lock-in platform. Follows the payments-modernization exit.",disposition:"Migrate with payments modernization; retire NonStop.",target:"Cloud-native payments platform",effort:"H",risk:"H",cost:"H"},
+ "Middleware: CICS":{sig:"Sell",rationale:"CICS is the mainframe transaction backbone: very high value but off-strategy and hard to move. Industry norm is tolerate + API-enable now, migrate on a multi-year horizon.",disposition:"Tolerate near-term; expose via z/OS Connect; migrate long-term.",target:"Distributed services + modern data",effort:"H",risk:"H",cost:"H"},
+ "Middleware: JBOSS: EAP":{sig:"Hold",rationale:"Red Hat JBoss EAP is a supported, container-ready Java EE runtime that runs natively on OpenShift. It is a maintain/containerize target, not a retirement candidate.",disposition:"Maintain; run on OpenShift.",target:"JBoss EAP on OpenShift",effort:"L",risk:"L",cost:"L"},
+ "Middleware: JBOSS: EWS":{sig:"Hold",rationale:"JBoss Web Server (Tomcat/Apache) is a lightweight, supported servlet runtime that containerizes cleanly.",disposition:"Maintain; containerize.",target:"Tomcat on OpenShift",effort:"L",risk:"L",cost:"L"},
+ "Middleware: ConnectDirect":{sig:"Hold",rationale:"IBM Sterling Connect:Direct is the de-facto secure managed file transfer in banking; deeply embedded and still strategic for high-assurance B2B transfer.",disposition:"Maintain as the MFT standard; rationalize endpoints.",target:"Connect:Direct (retain)",effort:"L",risk:"M",cost:"M"},
+
+ /* ===== Connectivity ===== */
+ "Network: E-Commerce":{sig:"Hold",rationale:"E-commerce edge connectivity remains needed; modernize toward zero-trust and cloud edge rather than retire.",disposition:"Maintain; modernize to zero-trust edge.",target:"Zero-trust / cloud edge",effort:"M",risk:"M",cost:"M"},
+ "Network: Extranet":{sig:"Hold",rationale:"Partner/B2B extranet connectivity is still required; the direction is SD-WAN and zero-trust network access rather than flat extranets.",disposition:"Maintain; migrate to SD-WAN / ZTNA.",target:"SD-WAN / ZTNA",effort:"M",risk:"M",cost:"M"},
+ "Public DNS":{sig:"Hold",rationale:"Authoritative/public DNS is commodity but foundational; keep as a managed, resilient service.",disposition:"Maintain as managed DNS.",target:"Managed DNS",effort:"L",risk:"L",cost:"L"},
+ "Content Delivery (CDN)":{sig:"Buy",rationale:"CDN is a strategic, modern edge capability (performance, DDoS/WAF, edge compute). Invest and standardize.",disposition:"Invest; standardize on a strategic CDN.",target:"Strategic CDN (CloudFront / Akamai / Cloudflare)",effort:"L",risk:"L",cost:"M"},
+ "Datacenter Networking":{sig:"Hold",rationale:"Core DC networking remains essential but shrinks as workloads move to cloud; tolerate and right-size.",disposition:"Tolerate; right-size as cloud migration proceeds.",target:"Cloud networking + reduced DC footprint",effort:"M",risk:"M",cost:"M"},
+ "ABM Network":{sig:"Hold",rationale:"ATM/ABM network is business-critical, specialized banking infrastructure with strict availability needs; maintain and harden.",disposition:"Maintain; modernize resilience.",target:"Retain / modernize",effort:"M",risk:"M",cost:"M"},
+ "myRemote PC":{sig:"Sell",rationale:"Remote-access PC service; the industry has moved to VDI/DaaS and zero-trust access, so legacy remote-PC approaches are being replaced.",disposition:"Migrate to VDI/DaaS + ZTNA.",target:"VDI/DaaS + ZTNA",effort:"M",risk:"M",cost:"M"},
+ "Dataline: International":{sig:"Hold",rationale:"International WAN links remain necessary; direction is SD-WAN and carrier rationalization for cost.",disposition:"Tolerate; migrate to SD-WAN.",target:"SD-WAN",effort:"M",risk:"L",cost:"M"},
+ "Branch Network":{sig:"Hold",rationale:"Branch connectivity is core to retail banking; modernize with SD-WAN but retain.",disposition:"Maintain; modernize to SD-WAN.",target:"SD-WAN branch",effort:"M",risk:"M",cost:"M"},
+ "DNS":{sig:"Hold",rationale:"Internal DNS is foundational; keep as a resilient managed service and integrate with cloud DNS.",disposition:"Maintain; integrate with cloud DNS.",target:"Managed / cloud DNS",effort:"L",risk:"L",cost:"L"},
+ "Network Firewall (GCS Partnership)":{sig:"Buy",rationale:"Modern firewall delivered via a strategic partnership/next-gen platform; invest as the go-forward perimeter/segmentation capability.",disposition:"Invest; standardize next-gen firewalling.",target:"Next-gen firewall platform",effort:"L",risk:"L",cost:"M"},
+ "Network Observability (TBD)":{sig:"Buy",rationale:"Network observability is an emerging, strategic capability for hybrid/cloud estates; invest to build it out.",disposition:"Invest; build the capability.",target:"Network observability platform",effort:"M",risk:"L",cost:"M"},
+ "Automated Application Balancing":{sig:"Buy",rationale:"Automated / global load balancing and traffic management is a modern, strategic capability for resilient multi-site/cloud delivery.",disposition:"Invest; standardize automated LB/GSLB.",target:"Cloud LB / GSLB",effort:"L",risk:"L",cost:"L"},
+
+ /* ===== Cloud ===== */
+ "Elasticsearch":{sig:"Buy",rationale:"Search and log analytics is strategic; Elastic/OpenSearch is a modern, widely-adopted engine. Invest, while noting license strategy (Elastic vs OpenSearch).",disposition:"Invest; standardize search/log analytics.",target:"Elastic / OpenSearch (managed)",effort:"L",risk:"L",cost:"M"},
+ "OpenShift":{sig:"Buy",rationale:"Strategic container platform and the primary landing zone for modernized workloads. High value, strong fit, actively invested.",disposition:"Invest; make it the default runtime and consolidation target.",target:"n/a — this is the target state",effort:"L",risk:"L",cost:"M"},
+ "Kafka":{sig:"Buy",rationale:"Event streaming is a strategic backbone for decoupled, real-time architectures. Invest and standardize as the enterprise streaming platform.",disposition:"Invest; standard enterprise streaming.",target:"Managed Kafka",effort:"L",risk:"L",cost:"M"},
+ "Caching":{sig:"Buy",rationale:"Distributed caching (Redis-style) is a modern, strategic performance/scale capability.",disposition:"Invest; standardize managed caching.",target:"Managed Redis / distributed cache",effort:"L",risk:"L",cost:"L"},
+ "Cloud - PCF":{sig:"Sell",rationale:"Pivotal/VMware Tanzu Application Service (PCF) adoption is declining industry-wide as teams standardize on Kubernetes/OpenShift; overlaps with the strategic container platform.",disposition:"Migrate apps to OpenShift; retire PCF.",target:"OpenShift",effort:"M",risk:"M",cost:"M"},
+ "Logging":{sig:"Buy",rationale:"Centralized logging is a strategic, foundational observability capability. Invest and standardize.",disposition:"Invest; enterprise logging standard.",target:"Central logging platform",effort:"L",risk:"L",cost:"M"},
+ "Public Cloud - AWS":{sig:"Buy",rationale:"Public cloud is the strategic target platform. Invest in landing zones, guardrails and workload migration.",disposition:"Invest; primary strategic platform.",target:"n/a — strategic destination",effort:"M",risk:"M",cost:"M"},
+
+ /* ===== Data ===== */
+ "Diamanti: MongoDB":{sig:"Sell",bv:{crit:2,demand:2,strat:1},tf:{health:2,support:1,cloudfit:1,cost:2,security:2},rationale:"Assessed as the Diamanti platform (bare-metal Kubernetes / storage appliance) rather than the MongoDB engine it hosts. Diamanti is off-strategy versus cloud-managed Kubernetes and DBaaS, carries vendor-viability concerns and a niche footprint, and is a clear consolidation/exit candidate. The hosted MongoDB workload is retained by moving it to a managed service.",disposition:"Retire the Diamanti platform; migrate the MongoDB workload to MongoDB on DBaaS.",target:"MongoDB on DBaaS (managed)",effort:"M",risk:"M",cost:"M"},
+ "Database: Sybase":{sig:"Sell",rationale:"SAP ASE (Sybase) has declining investment and a limited cloud path; the strategic direction is PostgreSQL/managed DBaaS.",disposition:"Migrate to DaaS PostgreSQL; decommission.",target:"PostgreDB",effort:"M",risk:"M",cost:"M"},
+ "Database: Oracle":{sig:"Hold",rationale:"Oracle remains powerful for demanding OLTP but carries premium licensing. Industry pattern is retain for heavy workloads while migrating commodity databases to PostgreSQL to cut cost.",disposition:"Tolerate for heavy OLTP; migrate commodity schemas to PostgreSQL.",target:"Retain core; PostgreSQL for the rest",effort:"M",risk:"M",cost:"H"},
+ "Oracle ASO":{sig:"Hold",rationale:"Oracle Advanced Security Option is an add-on tied to Oracle DB; its disposition follows the Oracle footprint decision.",disposition:"Follow Oracle rationalization.",target:"With Oracle estate",effort:"L",risk:"M",cost:"M"},
+ "Database: SCON":{sig:"Sell",bv:{crit:4,demand:3,strat:3},tf:{health:2,support:2,cloudfit:2,cost:2,security:3},rationale:"Consolidated SQL Server estate. Workloads retain value, but the on-prem consolidated footprint is off the strategic self-service path; re-platform onto the managed SQL Server (DBaaS) offering.",disposition:"Re-platform to managed SQL Server (DBaaS); retire the on-prem consolidated instance.",target:"SQL Server (DBaaS)",effort:"M",risk:"M",cost:"M"},
+ "Database: SQL Server":{sig:"Sell",bv:{crit:4,demand:4,strat:3},tf:{health:3,support:3,cloudfit:2,cost:2,security:3},rationale:"Mainstream SQL Server estate with real business value. Strategic direction is managed/cloud SQL Server, so re-platform onto the DBaaS offering rather than maintaining on-prem instances.",disposition:"Re-platform to managed SQL Server (DBaaS).",target:"SQL Server (DBaaS)",effort:"M",risk:"L",cost:"M"},
+ "Singlestore (MemSQL)":{sig:"Sell",bv:{crit:2,demand:1,strat:1},tf:{health:2,support:2,cloudfit:2,cost:2,security:2},rationale:"Niche HTAP engine with limited adoption and overlap with the strategic managed database and analytics stack (PostgreSQL / ClickHouse). Low strategic value and small footprint make it a consolidation candidate.",disposition:"Retire — migrate workloads to the strategic managed DB / analytics engines.",target:"PostgreDB / ClickHouse (DBaaS)",effort:"M",risk:"M",cost:"L"},
+ "Database: OCON Intel":{sig:"Hold",rationale:"Consolidated Oracle-on-Intel estate. Oracle stays for demanding OLTP but carries premium licensing; tolerate core workloads and migrate commodity schemas to PostgreSQL to reduce cost.",disposition:"Tolerate core; migrate commodity schemas to PostgreSQL.",target:"Retain core Oracle; DaaS PostgreSQL for the rest",effort:"M",risk:"M",cost:"H"},
+ "Enterprise Database Administration":{sig:"Hold",rationale:"DBA service and tooling remains needed; modernize toward automation and DBaaS operating models.",disposition:"Maintain; automate / shift to DBaaS ops.",target:"DBaaS operating model",effort:"M",risk:"L",cost:"M"},
+ "Database: OCON AIX":{sig:"Sell",bv:{crit:4,demand:3,strat:3},tf:{health:2,support:2,cloudfit:2,cost:2,security:2},rationale:"Consolidated Oracle on AIX. The data and workload retain real business value, but running on AIX/Power is off-strategy (proprietary Unix exit). This is a re-host rather than a retirement — move the Oracle estate onto commodity x86 Linux and decommission the AIX footprint.",disposition:"Re-platform to x86 — migrate Oracle from AIX to x86 Linux; retire AIX.",target:"Oracle on x86 Linux",effort:"H",risk:"M",cost:"H"},
+ "Database: DB2 (Distributed)":{sig:"Sell",rationale:"DB2 LUW has declining market share and a limited strategic cloud path relative to PostgreSQL/managed engines.",disposition:"Migrate to PostgreSQL/managed DB; retire.",target:"PostgreDB",effort:"M",risk:"M",cost:"M"},
+ "Database: SyCON":{sig:"Sell",rationale:"Consolidated Sybase (SAP ASE) estate. Sybase has declining vendor investment and a limited cloud path; migrate to the strategic managed database platform.",disposition:"Migrate to DaaS PostgreSQL/SQL Server; decommission.",target:"PostgreDB",effort:"M",risk:"M",cost:"M"},
+ "AI Farm":{sig:"Buy",rationale:"AI/ML compute is a strategic growth capability. Invest, ideally on GPU-enabled cloud/containers with MLOps.",disposition:"Invest; build out AI/ML platform.",target:"Cloud GPU / MLOps platform",effort:"M",risk:"M",cost:"H"},
+ "MariaDB":{sig:"Buy",rationale:"Database-as-a-Service is the strategic delivery model — self-service, managed, standardized. MariaDB DaaS is a go-forward option for MySQL-compatible workloads.",disposition:"Invest; strategic managed DB.",target:"n/a — target delivery model",effort:"L",risk:"L",cost:"M"},
+ "MongoDB":{sig:"Buy",rationale:"Managed document DBaaS is strategic for modern applications; invest and standardize.",disposition:"Invest; strategic managed DB.",target:"n/a — target delivery model",effort:"L",risk:"L",cost:"M"},
+ "PostgreDB":{sig:"Buy",rationale:"Managed PostgreSQL is the strategic default relational engine and the migration target for most legacy databases.",disposition:"Invest; default relational target.",target:"n/a — strategic destination",effort:"L",risk:"L",cost:"M"},
+ "SQL Server":{sig:"Emerging",rationale:"Managed SQL Server on DBaaS — an emerging engine option alongside the MariaDB / MongoDB / PostgreDB managed offerings, and the self-service target for consolidating the on-prem SQL Server estate. Under build-out / evaluation.",disposition:"Evaluate / build out; strategic managed target for SQL Server workloads.",target:"n/a — target delivery model",effort:"L",risk:"M",cost:"L"},
+ "ClickHouse":{sig:"Emerging",rationale:"ClickHouse is a modern open-source columnar OLAP engine with very high ingest and query performance for real-time analytics. Adoption is growing quickly in financial services (observability, risk, large-scale analytics). Treat as an emerging strategic engine under evaluation rather than a committed standard.",disposition:"Evaluate / pilot; promote to Buy if pilots succeed.",target:"ClickHouse (managed / ClickHouse Cloud)",effort:"L",risk:"M",cost:"L"},
+
+ /* ===== Storage ===== */
+ "Storage: NAS":{sig:"Hold",rationale:"File/NAS storage remains needed but is commodity; direction is cloud file and object storage with tiering.",disposition:"Tolerate; migrate suitable data to cloud file/object.",target:"Cloud file / object storage",effort:"M",risk:"L",cost:"M"},
+ "File Hosting Service":{sig:"Hold",rationale:"Internal file-hosting/sharing; keep but modernize toward managed/cloud content and collaboration platforms.",disposition:"Maintain; modernize to cloud file services.",target:"Cloud file services",effort:"M",risk:"L",cost:"L"},
+ "Storage: Backup and Recovery":{sig:"Hold",rationale:"Backup/recovery is essential; the direction is cloud/immutable backup and DR-as-a-service.",disposition:"Maintain; modernize to cloud/immutable backup.",target:"Cloud backup / DRaaS",effort:"M",risk:"M",cost:"M"},
+ "Storage: SAN":{sig:"Hold",rationale:"Block/SAN storage stays for latency-sensitive on-prem workloads but shrinks as workloads move to cloud block/managed storage.",disposition:"Tolerate; right-size with cloud migration.",target:"Cloud block storage",effort:"M",risk:"M",cost:"M"},
+ "Storage: Mainframe":{sig:"Sell",rationale:"Mainframe storage is tied to the mainframe exit trajectory; it declines as mainframe workloads migrate.",disposition:"Reduce with mainframe migration; retire.",target:"With mainframe exit",effort:"H",risk:"M",cost:"M"},
+ "Object Storage":{sig:"Buy",rationale:"Object storage (S3-style) is the strategic default for unstructured data, archives and cloud-native apps.",disposition:"Invest; strategic storage default.",target:"n/a — strategic destination",effort:"L",risk:"L",cost:"L"},
+
+ /* ===== Compute ===== */
+ "M/F Specialty CPU (zIIP)":{sig:"Hold",rationale:"Mainframe specialty engines lower MIPS cost for eligible workloads; their disposition is bound to the multi-year mainframe strategy — tolerate near-term.",disposition:"Tolerate; reduce with mainframe workload migration.",target:"With mainframe strategy",effort:"H",risk:"H",cost:"H"},
+ "M/F General CPU (GCP)":{sig:"Hold",rationale:"General mainframe CPU capacity is high-cost but carries critical workloads; tolerate near-term, migrate on the long horizon.",disposition:"Tolerate; migrate workloads over time.",target:"Distributed / cloud",effort:"H",risk:"H",cost:"H"},
+ "Diamanti":{sig:"Hold",rationale:"Diamanti bare-metal Kubernetes appliances served early container needs, but the market has consolidated on cloud-managed Kubernetes/OpenShift. Tolerate current use; converge onto the strategic container platform.",disposition:"Tolerate; converge onto OpenShift/cloud K8s.",target:"OpenShift / managed Kubernetes",effort:"M",risk:"M",cost:"M"},
+ "Server Hardware: X-86 Windows":{sig:"Hold",rationale:"Physical x86 Windows hosts are commodity; direction is virtualization and cloud, reducing physical footprint.",disposition:"Tolerate; virtualize/migrate to cloud.",target:"VM / cloud compute",effort:"M",risk:"L",cost:"M"},
+ "Server Hardware: X-86 Linux":{sig:"Hold",rationale:"Physical x86 Linux hosts are commodity; consolidate onto virtualization/containers and cloud.",disposition:"Tolerate; virtualize/containerize.",target:"VM / containers / cloud",effort:"M",risk:"L",cost:"M"},
+ "AIX Memory":{sig:"Sell",rationale:"AIX/Power is a declining proprietary Unix line; industry direction is to migrate to Linux/cloud.",disposition:"Migrate off AIX to Linux/cloud; retire.",target:"Linux / cloud",effort:"H",risk:"M",cost:"M"},
+ "CM: Premises SLER":{sig:"Sell",rationale:"Internal on-premises configuration/estate component; on-prem-only tooling is typically retired as the estate shifts to cloud-managed configuration.",disposition:"Retire with cloud configuration management.",target:"Cloud config management",effort:"M",risk:"M",cost:"L"},
+ "Server Management: Linux Physical":{sig:"Hold",rationale:"Management of physical Linux fleets remains needed near-term but shrinks with virtualization/cloud; modernize with automation/IaC.",disposition:"Tolerate; automate; reduce physical footprint.",target:"IaC + cloud management",effort:"M",risk:"L",cost:"M"},
+ "Server Management: Windows Physical":{sig:"Hold",rationale:"Physical Windows fleet management persists near-term; direction is automation and reduced physical footprint.",disposition:"Tolerate; automate; reduce footprint.",target:"IaC + cloud management",effort:"M",risk:"L",cost:"M"},
+ "Server Support: Windows Facilities and Network":{sig:"Hold",rationale:"Supporting Windows facilities/network is operational and ongoing; rationalize as workloads move to cloud.",disposition:"Maintain; rationalize with cloud migration.",target:"Cloud-managed operations",effort:"M",risk:"L",cost:"M"},
+ "Server Support: Linux Facilities and Network":{sig:"Hold",rationale:"Linux facilities/network support is operational; modernize toward automation and cloud operating models.",disposition:"Maintain; modernize operations.",target:"Cloud-managed operations",effort:"M",risk:"L",cost:"M"},
+ "Server Hardware: Solaris":{sig:"Sell",rationale:"Solaris/SPARC is a legacy proprietary Unix line on an end-of-life trajectory with scarce skills.",disposition:"Migrate to Linux/cloud; retire.",target:"Linux / cloud",effort:"H",risk:"H",cost:"H"},
+ "Server Management: Solaris":{sig:"Sell",rationale:"Managing Solaris estates is off-strategy; it declines with the Solaris exit.",disposition:"Retire with Solaris migration.",target:"With Solaris exit",effort:"M",risk:"M",cost:"M"},
+ "Server Management: AIX":{sig:"Sell",rationale:"AIX estate management is off-strategy and declines with the AIX exit to Linux/cloud.",disposition:"Retire with AIX migration.",target:"With AIX exit",effort:"M",risk:"M",cost:"M"},
+ "AIX CPU":{sig:"Sell",rationale:"AIX/Power compute is proprietary and declining; migrate workloads to Linux/cloud.",disposition:"Migrate off AIX; retire.",target:"Linux / cloud",effort:"H",risk:"M",cost:"H"},
+ "VM Storage":{sig:"Buy",rationale:"Virtualized/cloud storage for VM workloads is part of the strategic self-service compute platform.",disposition:"Invest; strategic VM platform.",target:"n/a — strategic platform",effort:"L",risk:"L",cost:"M"},
+ "VM Compute - Windows":{sig:"Buy",rationale:"Managed virtual/cloud Windows compute is the strategic destination for Windows server workloads.",disposition:"Invest; migrate physical Windows here.",target:"n/a — strategic platform",effort:"L",risk:"L",cost:"M"},
+ "VM Compute - Linux":{sig:"Buy",rationale:"Managed virtual/cloud Linux compute is the strategic destination for Linux workloads not yet containerized.",disposition:"Invest; migrate physical Linux here.",target:"n/a — strategic platform",effort:"L",risk:"L",cost:"M"},
+ "VM Dedicated":{sig:"Buy",rationale:"Dedicated virtual compute supports isolation/compliance needs within the strategic virtualization platform.",disposition:"Invest; use for isolation/compliance workloads.",target:"n/a — strategic platform",effort:"L",risk:"L",cost:"M"},
+
+ /* ===== Operations ===== */
+ "SRE & Incident Management":{sig:"Buy",rationale:"SRE practices and modern incident management are strategic operating-model capabilities; invest in tooling, automation and error-budget discipline.",disposition:"Invest; scale SRE operating model.",target:"Modern SRE / incident tooling",effort:"M",risk:"L",cost:"M"},
+ "ServiceNow":{sig:"Hold",rationale:"ServiceNow is a strategic SaaS platform for ITSM/workflow, widely standardized in enterprises. Keep and expand thoughtfully; govern scope creep and licensing.",disposition:"Maintain; expand where it adds value.",target:"ServiceNow (retain)",effort:"L",risk:"L",cost:"M"},
+ "myMarketPlace":{sig:"Hold",rationale:"Internal self-service/catalog capability; retain and modernize as the front door to platform services.",disposition:"Maintain; modernize as the platform catalog.",target:"Developer portal / service catalog",effort:"M",risk:"L",cost:"M"},
+
+ /* ===== Client Computing ===== */
+ "myMobility":{sig:"Hold",rationale:"Enterprise mobility management is an ongoing capability; maintain and keep current with modern UEM.",disposition:"Maintain; keep on modern UEM.",target:"Modern UEM",effort:"L",risk:"L",cost:"M"},
+
+ /* ===== Mainframe ===== */
+ "Middleware: Messaging (z/OS)":{sig:"Hold",rationale:"MQ on z/OS is critical, high-assurance messaging; tolerate near-term and bridge to distributed messaging/streaming over time.",disposition:"Tolerate; bridge to distributed messaging.",target:"MQ distributed / Kafka bridge",effort:"H",risk:"M",cost:"M"},
+ "Middleware: OnDemand (z/OS)":{sig:"Sell",rationale:"Mainframe report/archival (CMOD on z/OS) is legacy archival; migrate to cloud storage + retention.",disposition:"Migrate archives to cloud; retire.",target:"Object storage + retention",effort:"M",risk:"M",cost:"M"},
+ "z/OS Connect":{sig:"Hold",rationale:"z/OS Connect is a modernization enabler that exposes mainframe assets as REST APIs — it supports the migration strategy, so retain during the transition.",disposition:"Maintain; use to API-enable mainframe.",target:"z/OS Connect (retain for transition)",effort:"L",risk:"L",cost:"M"},
+ "Database: DB2 (z/OS)":{sig:"Hold",rationale:"DB2 on z/OS holds core banking data — very high value, very sticky. Industry norm is tolerate and API-enable now, migrate on a long horizon.",disposition:"Tolerate near-term; API-enable; migrate long-term.",target:"Cloud/relational (long-horizon)",effort:"H",risk:"H",cost:"H"},
+};
+
+/* =================== SCORING (placeholder generator) =================== */
+/* TIME model: Business Value (y) × Technical Fit (x), each 1–5. Sub-scores drive each axis. */
+const BV_DIMS=[['crit','Business criticality'],['demand','Demand / adoption'],['strat','Strategic importance']];
+const TF_DIMS=[['health','Technical health'],['support','Vendor support / EOL'],['cloudfit','Cloud-native fit'],['cost','Cost efficiency'],['security','Security posture']];
+
+const SELL_KW=['HP NonStop','Sybase','Solaris','BizTalk','BusinessWorks','BusinessWare','IBMi','Oracle ASO','DB2 (Distributed)','OCON','SyCON','Niche Firewall','NetCON','IMS','CICS','Content Manager','Royal Bank Data Mover','GDM/NGM','ConnectDirect','ISAM','OnDemand','AIX','M/F ','Premises SLER','Dataline','Branch Network','ABM Network','myRemote','Extranet'];
+const BUY_KW=['DaaS','VM Compute','VM Storage','VM Dedicated','OpenShift','Kafka','Elasticsearch','Caching','Public Cloud','Diamanti','Singlestore','Object Storage','Content Delivery','Public DNS','Network Firewall','Automated Application','Network Observability','AI Farm','PCF','Logging'];
+function hash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h}
+function baseSignal(p){
+  const n=p.n,isSell=SELL_KW.some(k=>n.includes(k)),isBuy=BUY_KW.some(k=>n.includes(k))||p.d==='Cloud';
+  if(isBuy&&!isSell)return'Buy'; if(isSell&&!isBuy)return'Sell'; if(isBuy&&isSell)return p.d==='Cloud'?'Buy':'Sell'; return'Hold';
+}
+function jit(seed,lo,hi){const r=(hash(seed)%1000)/1000;return Math.max(1,Math.min(5,Math.round(lo+r*(hi-lo))));}
+function genScores(p){
+  const sig=(ANALYSIS[p.n]&&ANALYSIS[p.n].sig)||SIG_OVERRIDE[p.n]||baseSignal(p);
+  const legacy=SELL_KW.some(k=>p.n.includes(k));
+  let bvR,tfR;
+  if(sig==='Buy'){bvR=[3,5];tfR=[4,5];}
+  else if(sig==='Emerging'){bvR=[3,4];tfR=[4,5];}
+  else if(sig==='Hold'){bvR=[2,3];tfR=[3,4];}
+  else { if(legacy){bvR=[1,3];tfR=[1,2];} else {bvR=[3,4];tfR=[1,3];} }
+  const bv={},tf={};
+  BV_DIMS.forEach(([k])=>bv[k]=jit(p.n+k,bvR[0],bvR[1]));
+  TF_DIMS.forEach(([k])=>tf[k]=jit(p.n+k,tfR[0],tfR[1]));
+  const ov=ANALYSIS[p.n]||{};
+  if(ov.bv)Object.assign(bv,ov.bv); if(ov.tf)Object.assign(tf,ov.tf);
+  return {sig,bv,tf};
+}
+/* plain-English disposition labels; `term` keeps the underlying TIME reference */
+const TIME={
+  Invest:{lab:'Invest',term:'Invest',sig:'Buy',c:'var(--buy)'},
+  Tolerate:{lab:'Maintain',term:'Tolerate',sig:'Hold',c:'var(--hold)'},
+  Migrate:{lab:'Re-platform',term:'Migrate',sig:'Sell',c:'var(--migrate)'},
+  Eliminate:{lab:'Retire',term:'Eliminate',sig:'Sell',c:'var(--sell)'},
+};
+const SIGC={Buy:'var(--buy)',Hold:'var(--hold)',Sell:'var(--sell)',Emerging:'var(--emerging)'};
+function avg(o){const v=Object.values(o);return v.reduce((a,b)=>a+b,0)/v.length;}
+P.forEach(p=>{
+  const s=genScores(p);
+  p.bv=s.bv;p.tf=s.tf;p.sig=s.sig;
+  p.bvS=+avg(s.bv).toFixed(1);p.tfS=+avg(s.tf).toFixed(1);
+  /* TIME derived from the signal so quadrant label always agrees with Buy/Hold/Sell;
+     Sell splits into Migrate (still valuable → re-platform) vs Eliminate (low value → retire) */
+  p.time=(p.sig==='Buy'||p.sig==='Emerging')?'Invest':p.sig==='Hold'?'Tolerate':(p.bvS>=3?'Migrate':'Eliminate');
+  p.conf=(ANALYSIS[p.n]?'Industry view':'Derived');
+});
+
+const DOMAINS=[...new Set(P.map(p=>p.d))];
+let catFilter='All',sigFilter='All',view='board',laneBy='sig',quadFilter=null;
+
+function badge(sig){return `<span class="badge" style="background:${SIGC[sig]}">${sig}</span>`;}
+function filtered(){
+  const q=document.getElementById('search').value.toLowerCase();
+  return P.filter(p=>(catFilter==='All'||p.d===catFilter)&&(sigFilter==='All'||p.sig===sigFilter)&&(p.n.toLowerCase().includes(q)||p.d.toLowerCase().includes(q)));
+}
+
+function renderKPIs(){
+  const c={Buy:0,Hold:0,Sell:0,Emerging:0};P.forEach(p=>c[p.sig]++);
+  const t={Invest:0,Tolerate:0,Migrate:0,Eliminate:0};P.forEach(p=>t[p.time]++);
+  const k=[
+    {lab:'Technologies',val:P.length,sub:DOMAINS.length+' categories'},
+    {lab:'Buy',val:c.Buy,sub:'invest / grow',col:'var(--buy)'},
+    {lab:'Emerging',val:c.Emerging,sub:'evaluate / pilot',col:'var(--emerging)'},
+    {lab:'Hold',val:c.Hold,sub:'maintain',col:'var(--hold)'},
+    {lab:'Sell',val:c.Sell,sub:t.Migrate+' migrate · '+t.Eliminate+' eliminate',col:'var(--sell)'},
+    {lab:'Avg business value',val:(P.reduce((a,p)=>a+p.bvS,0)/P.length).toFixed(1),small:'/5',sub:'across estate'},
+  ];
+  document.getElementById('kpis').innerHTML=k.map(x=>`<div class="kpi"><div class="lab">${x.lab}</div>
+    <div class="val" style="${x.col?`color:${x.col}`:''}">${x.val}${x.small?`<small>${x.small}</small>`:''}</div>
+    <div class="sub">${x.sub}</div></div>`).join('');
+}
+function renderChips(){
+  document.getElementById('catChips').innerHTML=['All',...DOMAINS].map(c=>`<span class="chip ${c===catFilter?'active':''}" onclick="setCat('${c.replace(/'/g,"\\'")}')">${c}</span>`).join('');
+  document.getElementById('sigfilter').innerHTML=['All','Buy','Emerging','Hold','Sell'].map(s=>`<span class="sigchip ${s===sigFilter?'active':''}" style="${s===sigFilter&&s!=='All'?`background:${SIGC[s]};border-color:${SIGC[s]}`:(s===sigFilter?'background:var(--rbc-blue);border-color:var(--rbc-blue);color:#fff':'')}" onclick="setSig('${s}')">${s}</span>`).join('');
+}
+function setCat(c){catFilter=c;renderChips();render();}
+function setSig(s){sigFilter=s;renderChips();render();}
+
+/* quadrant */
+function renderQuad(){
+  const data=filtered();
+  const W=560,H=460,pad=44;
+  const x=v=>pad+((v-1)/4)*(W-pad-16);
+  const y=v=>H-pad-((v-1)/4)*(H-pad-28);
+  const zones=[
+    {t:'Migrate',x0:1,x1:3,y0:3,y1:5,c:'var(--migrate)'},
+    {t:'Invest',x0:3,x1:5,y0:3,y1:5,c:'var(--buy)'},
+    {t:'Eliminate',x0:1,x1:3,y0:1,y1:3,c:'var(--sell)'},
+    {t:'Tolerate',x0:3,x1:5,y0:1,y1:3,c:'var(--hold)'},
+  ];
+  const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
+  let s=`<svg class="quad" viewBox="0 0 ${W} ${H}">`;
+  zones.forEach(z=>{
+    const sel=quadFilter===z.t, op=quadFilter?(sel?0.17:0.04):0.07;
+    s+=`<rect x="${x(z.x0)}" y="${y(z.y1)}" width="${x(z.x1)-x(z.x0)}" height="${y(z.y0)-y(z.y1)}" fill="${z.c}" opacity="${op}" style="cursor:pointer" onclick="setQuad('${z.t}')"/>`;
+    if(sel)s+=`<rect x="${x(z.x0)+1.5}" y="${y(z.y1)+1.5}" width="${x(z.x1)-x(z.x0)-3}" height="${y(z.y0)-y(z.y1)-3}" fill="none" stroke="${z.c}" stroke-width="2" rx="6" style="pointer-events:none"/>`;
+    // place label against the centre divider (a dot-free band from the clamping) so dot clusters in the
+    // outer corners never sit on top of it
+    const top=z.y1===5, left=z.x0===1;
+    const lx=left?x(3)-8:x(3)+8, ly=top?y(5)+18:y(1)-12, anch=left?'end':'start';
+    s+=`<text class="qzone-label" x="${lx}" y="${ly}" text-anchor="${anch}" fill="${z.c}" style="cursor:pointer" onclick="setQuad('${z.t}')">${TIME[z.t].lab.toUpperCase()}${sel?' ✕':''}</text>`;
+  });
+  // axes
+  s+=`<line x1="${x(3)}" y1="${y(1)}" x2="${x(3)}" y2="${y(5)}" stroke="var(--line)" stroke-dasharray="4 4" style="pointer-events:none"/>`;
+  s+=`<line x1="${x(1)}" y1="${y(3)}" x2="${x(5)}" y2="${y(3)}" stroke="var(--line)" stroke-dasharray="4 4" style="pointer-events:none"/>`;
+  s+=`<text class="qaxis" x="${W/2}" y="${H-8}" text-anchor="middle" style="pointer-events:none">Technical fit  →</text>`;
+  s+=`<text class="qaxis" x="14" y="${H/2}" text-anchor="middle" transform="rotate(-90 14 ${H/2})" style="pointer-events:none">Business value  →</text>`;
+  const esc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  // show name labels next to dots only when the view is filtered to a small set (never for the full 95)
+  const showLabels=data.length>0 && data.length<=22 && data.length<P.length;
+  const labels=[];
+  data.forEach(p=>{
+    // keep each point inside its own quadrant band so position always matches its classification
+    const hiV=(p.time==='Invest'||p.time==='Migrate'), hiF=(p.time==='Invest'||p.time==='Tolerate');
+    const jx=((hash(p.n)%100)/100-0.5)*1.5, jy=((hash(p.n+'y')%100)/100-0.5)*1.5;
+    const tfP=hiF?clamp(p.tfS+jx*0.6,3.15,4.9):clamp(p.tfS+jx*0.6,1.1,2.85);
+    const bvP=hiV?clamp(p.bvS+jy*0.6,3.15,4.9):clamp(p.bvS+jy*0.6,1.1,2.85);
+    const cx=x(tfP), cy=y(bvP);
+    const dim=quadFilter&&quadFilter!==p.time?0.28:0.9;
+    const emg=p.sig==='Emerging';
+    s+=`<circle class="pt${emg?' emg':''}" cx="${cx}" cy="${cy}" r="${emg?6.5:5.5}" fill="${SIGC[p.sig]}" opacity="${dim}" onclick="openDrawer('${p.n.replace(/'/g,"\\'")}')"><title>${esc(p.n)} — ${p.sig} (${p.time}) · BV ${p.bvS} / TF ${p.tfS}</title></circle>`;
+    if(showLabels) labels.push({cx,cy,right:cx>=W/2,dim,name:p.n.length>26?p.n.slice(0,24)+'…':p.n});
+  });
+  if(showLabels){
+    // de-collide labels vertically within each side, with a connector line back to the dot
+    const gap=13, topY=y(5)+6, botY=H-10;
+    [true,false].forEach(rf=>{
+      const g=labels.filter(l=>l.right===rf).sort((a,b)=>a.cy-b.cy);
+      let last=-1e9;
+      g.forEach(l=>{ l.ly=l.cy<last+gap?last+gap:l.cy; last=l.ly; });
+      if(g.length){
+        const over=g[g.length-1].ly-botY; if(over>0)g.forEach(l=>l.ly-=over);
+        const under=topY-g[0].ly; if(under>0)g.forEach(l=>l.ly+=under);
+      }
+    });
+    labels.forEach(l=>{
+      const lxp=l.right?l.cx-9:l.cx+9, anch=l.right?'end':'start';
+      if(Math.abs(l.ly-l.cy)>5) s+=`<line x1="${l.cx}" y1="${l.cy}" x2="${lxp}" y2="${l.ly}" stroke="var(--ink-soft)" stroke-width="0.7" opacity="${l.dim*0.5}" style="pointer-events:none"/>`;
+      s+=`<text class="qlabel" x="${lxp}" y="${l.ly+3.2}" text-anchor="${anch}" opacity="${l.dim}">${esc(l.name)}</text>`;
+    });
+  }
+  s+='</svg>';
+  document.getElementById('quadwrap').innerHTML=s;
+  renderQuadKey();
+}
+const QMEANING={
+  Invest:{sig:'Buy',d:'High value · strong fit — keep &amp; grow',c:'var(--buy)'},
+  Tolerate:{sig:'Hold',d:'Sound fit, lower value — keep running, minimal spend',c:'var(--hold)'},
+  Migrate:{sig:'Sell',d:'High value, weak fit — move to a strategic platform',c:'var(--migrate)'},
+  Eliminate:{sig:'Sell',d:'Low value, weak fit — decommission',c:'var(--sell)'},
+};
+function renderQuadKey(){
+  const counts={Invest:0,Tolerate:0,Migrate:0,Eliminate:0};filtered().forEach(p=>counts[p.time]++);
+  document.getElementById('quadkey').innerHTML=['Invest','Tolerate','Migrate','Eliminate'].map(t=>{
+    const m=QMEANING[t],sel=quadFilter===t;
+    return `<span class="qk ${sel?'sel':''}" style="--qc:${m.c}" onclick="setQuad('${t}')">
+      <span class="qk-h"><span class="qk-dot" style="background:${m.c}"></span><b>${TIME[t].lab}</b><small>= ${m.sig}</small>
+      <span class="qk-n">${counts[t]}</span>${sel?'<span class="qk-x">✕</span>':''}</span>
+      <span class="qk-desc">${m.d} <span style="opacity:.6">· TIME: ${TIME[t].term}</span></span></span>`;
+  }).join('');
+}
+function setQuad(t){quadFilter=quadFilter===t?null:t;render();}
+
+/* list */
+function renderList(){
+  const data=filtered().filter(p=>!quadFilter||p.time===quadFilter).slice().sort((a,b)=>({Sell:0,Hold:1,Buy:2})[a.sig]-({Sell:0,Hold:1,Buy:2})[b.sig] || a.bvS-b.bvS);
+  document.getElementById('listcount').innerHTML=quadFilter
+    ? `<b style="color:${TIME[quadFilter].c}">${quadFilter}</b>: ${data.length} · <span style="cursor:pointer;color:var(--rbc-blue);font-weight:700" onclick="setQuad('${quadFilter}')">clear ✕</span>`
+    : data.length+' shown';
+  document.getElementById('tlist').innerHTML=data.map(p=>{
+    const tm=TIME[p.time];
+    return `<div class="trow" onclick="openDrawer('${p.n.replace(/'/g,"\\'")}')">
+      <span class="tsig" style="background:${SIGC[p.sig]}">${p.sig[0]}</span>
+      <div class="tmain"><b>${p.n}</b><span>${p.d}${ANALYSIS[p.n]?' · ✔ analysed':''}</span></div>
+      <span class="ttime" style="background:${tm.c}22;color:${tm.c}">${tm.lab}</span>
+      <span class="tscore">BV ${p.bvS} · TF ${p.tfS}</span></div>`;
+  }).join('')||`<div style="padding:20px;color:var(--ink-soft)">No technologies match.</div>`;
+}
+
+function setView(v){view=v;document.querySelectorAll('#viewseg button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  document.getElementById('boardView').style.display=v==='board'?'':'none';
+  document.getElementById('swimView').style.display=v==='swim'?'':'none';
+  document.getElementById('laneCtl').style.display=v==='swim'?'flex':'none';
+  render();}
+function setLane(l){laneBy=l;document.querySelectorAll('#laneseg button').forEach(b=>b.classList.toggle('active',b.dataset.lane===l));render();}
+
+function render(){ if(view==='board'){renderQuad();renderList();} else {renderSwimlane();} }
+
+/* ---- swimlane board: lanes = chosen categorization (signal / TIME / category) ---- */
+function laneDefs(){
+  if(laneBy==='sig')return[{k:'Buy',c:'var(--buy)'},{k:'Emerging',c:'var(--emerging)'},{k:'Hold',c:'var(--hold)'},{k:'Sell',c:'var(--sell)'}].map(l=>({...l,items:p=>p.sig===l.k}));
+  if(laneBy==='time')return[{k:'Invest',c:'var(--buy)'},{k:'Tolerate',c:'var(--hold)'},{k:'Migrate',c:'var(--migrate)'},{k:'Eliminate',c:'var(--sell)'}].map(l=>({...l,items:p=>p.time===l.k}));
+  return DOMAINS.map(d=>({k:d,c:'var(--rbc-blue)',items:p=>p.d===d}));
+}
+function swCard(p){
+  const tm=TIME[p.time];
+  return `<div class="swcard" style="--sc:${SIGC[p.sig]}" onclick="openDrawer('${p.n.replace(/'/g,"\\'")}')">
+    <b>${p.n}</b>
+    <div class="swmeta"><span>${p.d}${p.tl&&p.tl!=='NA'?' · '+p.tl:''}</span><span class="swscore">BV ${p.bvS} · TF ${p.tfS}</span></div>
+  </div>`;
+}
+function renderSwimlane(){
+  const data=filtered();
+  const lanes=laneDefs();
+  let h='<div class="lanes">';
+  lanes.forEach(l=>{
+    const items=data.filter(l.items).sort((a,b)=>b.bvS-a.bvS||a.n.localeCompare(b.n));
+    h+=`<div class="lane" style="--lc:${l.c}">
+      <div class="lane-h"><span class="lane-dot" style="background:${l.c}"></span><span class="lane-name">${l.k}</span><span class="lane-n">${items.length}</span></div>
+      <div class="lane-cards">${items.map(swCard).join('')||'<div class="lane-empty">None</div>'}</div>
+    </div>`;
+  });
+  h+='</div>';
+  document.getElementById('swimhost').innerHTML=h;
+}
+
+/* drawer */
+function scblock(title,dims,scores,composite){
+  const rows=dims.map(([k,label])=>{const v=scores[k];const col=v>=4?'var(--buy)':v>=3?'var(--hold)':'var(--sell)';
+    return `<div class="dim"><span class="dn">${label}</span><span class="dt"><i style="width:${v/5*100}%;background:${col}"></i></span><span class="dv">${v}</span></div>`;}).join('');
+  return `<div class="scblock"><div class="h"><span>${title}</span><span class="n">${composite}<small style="font-size:11px;color:var(--ink-soft)">/5</small></span></div>${rows}</div>`;
+}
+function erisk(v){const m={L:'var(--buy)',M:'var(--hold)',H:'var(--sell)'};return `<span class="erisk" style="background:${m[v]||'var(--ink-soft)'}">${v||'—'}</span>`;}
+function openDrawer(name){
+  const p=P.find(x=>x.n===name);if(!p)return;
+  const a=ANALYSIS[name]||{};const tm=TIME[p.time];
+  const stub=`<span class="narr placeholder">No detailed rationale yet — derived signal only. Add this technology to the ANALYSIS block to document the full case.</span>`;
+  const nApps=a.apps?a.apps.length:(a.appCount||0);
+  const busChips=(a.bus||[]).map(x=>`<span class="butag">${x}</span>`).join('');
+  const appChips=(a.apps||[]).map(x=>`<span class="apptag">${x}</span>`).join('');
+  const consumers=(a.bus||a.apps||a.appCount)
+    ? `<div class="cons-h">${nApps||'—'} application${nApps!==1?'s':''} · ${(a.bus||[]).length} business unit${(a.bus||[]).length!==1?'s':''}</div>
+       ${busChips?`<div class="cons-sub">Business units</div><div class="tagrow">${busChips}</div>`:''}
+       ${appChips?`<div class="cons-sub">Consuming applications</div><div class="tagrow">${appChips}</div>`:(a.appCount&&!a.apps?`<div class="cons-sub" style="color:var(--ink-soft);font-weight:600;text-transform:none">${a.appCount} applications — full list to be pulled from CMDB</div>`:'')}`
+    : `<div class="tagrow"><span class="butag" style="background:var(--bg);color:var(--ink-soft);border:1px solid var(--line)">Business units: TBD</span><span class="apptag">Applications: TBD</span></div>
+       <div class="narr placeholder" style="margin-top:8px">To be mapped from the CMDB / application portfolio.</div>`;
+  document.getElementById('drawerBody').innerHTML=`
+    <div class="dcat">${p.d}</div><h2>${p.n}</h2>
+    <div class="decision">${badge(p.sig)}<span class="ttime" style="background:${tm.c}22;color:${tm.c}">${tm.lab}</span><span class="conf">Confidence: ${p.conf}</span></div>
+    <div class="reco" style="--sig:${SIGC[p.sig]}">${a.disposition||`<span style="color:var(--ink-soft)">${defaultDisposition(p)}</span>`}</div>
+
+    <div class="sec-t"><span>Scorecard</span><span>BV ${p.bvS} · TF ${p.tfS}</span></div>
+    <div class="scorecard">
+      ${scblock('Business value',BV_DIMS,p.bv,p.bvS)}
+      ${scblock('Technical fit',TF_DIMS,p.tf,p.tfS)}
+    </div>
+
+    <div class="sec-t">Rationale</div>
+    <div class="narr">${a.rationale||stub}</div>
+
+    <div class="sec-t">Consumers — apps &amp; business units</div>
+    ${consumers}
+
+    <div class="sec-t">Disposition &amp; target state</div>
+    <div class="narr">${a.target?`<b>Target:</b> ${a.target}`:'<span class="narr placeholder">Target state to be defined.</span>'}</div>
+    <div class="meta" style="margin-top:10px">
+      <div><div class="k">Migration effort</div><div class="v">${erisk(a.effort)}</div></div>
+      <div><div class="k">Change risk</div><div class="v">${erisk(a.risk)}</div></div>
+      <div><div class="k">Cost to change</div><div class="v">${erisk(a.cost)}</div></div>
+      <div><div class="k">Timeline</div><div class="v" style="font-size:13px">${p.tl||'—'}</div></div>
+    </div>
+
+    <div class="sec-t">Dependencies &amp; blast radius</div>
+    <div class="narr">${a.deps||'<span class="narr placeholder">Dependencies to be mapped.</span>'}</div>
+
+    <div class="sec-t">Decision record</div>
+    <div class="meta">
+      <div><div class="k">Owner</div><div class="v" style="font-size:13px">${a.owner||(ANALYSIS[name]?'Industry benchmark':'—')}</div></div>
+      <div><div class="k">Status</div><div class="v" style="font-size:13px">${a.status||(ANALYSIS[name]?'Industry view · RBC TBC':'Draft')}</div></div>
+      <div><div class="k">Last reviewed</div><div class="v" style="font-size:13px">${a.reviewed||(ANALYSIS[name]?'Industry baseline':'—')}</div></div>
+      <div><div class="k">Category</div><div class="v" style="font-size:13px">${p.d}</div></div>
+    </div>`;
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('scrim').classList.add('open');
+}
+function defaultDisposition(p){
+  if(p.time==='Invest')return'Invest — grow adoption and consolidate onto it.';
+  if(p.time==='Tolerate')return'Tolerate — maintain, no major investment.';
+  if(p.time==='Migrate')return'Migrate — re-platform to the strategic target.';
+  return'Eliminate — plan migration and decommission.';
+}
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('scrim').classList.remove('open');}
+
+function exportJSON(){
+  const out=P.map(p=>({technology:p.n,category:p.d,timeline:p.tl,signal:p.sig,time:p.time,businessValue:p.bvS,technicalFit:p.tfS,bv:p.bv,tf:p.tf,analysis:ANALYSIS[p.n]||null}));
+  const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rbc_architecture_simplification.json';a.click();
+}
+function toggleTheme(){const h=document.documentElement,dark=h.getAttribute('data-theme')==='dark';h.setAttribute('data-theme',dark?'light':'dark');document.getElementById('themeBtn').textContent=dark?'◐ Dark':'◑ Light';render();}
+
+renderKPIs();renderChips();render();
+</script>
+</body>
+</html>
