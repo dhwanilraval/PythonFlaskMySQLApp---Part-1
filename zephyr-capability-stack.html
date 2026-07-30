@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RBC Cloud — Capability stack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#101823; --ink-2:#3C4756; --ink-3:#6C7889;
+  --vellum:#E9EDF2; --paper:#FFFFFF; --rule:#C6CEDA;
+  --cp:#00857C; --cp-deep:#005E58; --cp-tint:#D8EBE9;
+  --aws:#FF9900; --azure:#0078D4; --rbc:#7A8699;
+  --up:#B4741F;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--vellum);color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  font-size:15px;line-height:1.5;
+  background-image:linear-gradient(var(--rule) 1px,transparent 1px),linear-gradient(90deg,var(--rule) 1px,transparent 1px);
+  background-size:64px 64px;background-position:-1px -1px;
+}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(120% 80% at 50% 0%,rgba(233,237,242,.2) 0%,var(--vellum) 72%)}
+.wrap{position:relative;max-width:1240px;margin:0 auto;padding:0 20px 72px}
+
+header{padding:56px 0 30px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--cp-deep);display:flex;align-items:center;gap:10px;margin-bottom:22px}
+.eyebrow::after{content:"";height:1px;flex:1;background:var(--rule)}
+h1{font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:700;
+  font-size:clamp(32px,5.6vw,56px);line-height:1.03;letter-spacing:-.02em;margin:0 0 18px;max-width:17ch}
+h1 em{font-style:normal;color:var(--cp)}
+.deck{max-width:58ch;color:var(--ink-2);font-size:16.5px;margin:0}
+
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:28px;padding-top:20px;border-top:1px solid var(--rule)}
+.controls .lbl{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-right:4px}
+.chip{appearance:none;border:1px solid var(--rule);background:transparent;
+  font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3);
+  padding:7px 13px 7px 11px;border-radius:2px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.18s}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.35}
+.chip[aria-pressed="true"]{background:var(--paper);color:var(--ink);border-color:var(--ink)}
+.chip[aria-pressed="true"] .dot{opacity:1}
+.chip.aws .dot{color:var(--aws)} .chip.aws[aria-pressed="true"]{border-color:var(--aws)}
+.chip.azure .dot{color:var(--azure)} .chip.azure[aria-pressed="true"]{border-color:var(--azure)}
+.chip.rbc{border-style:dashed} .chip.rbc .dot{color:var(--rbc)}
+.chip.rbc[aria-pressed="true"]{border-style:solid;border-color:var(--rbc)}
+.chip:focus-visible{outline:2px solid var(--cp);outline-offset:2px}
+
+/* ---------- stack frame ---------- */
+.stack{display:grid;grid-template-columns:58px 1fr 58px;gap:0;margin-top:34px;position:relative}
+.rail{position:relative}
+.rail .line{position:absolute;top:12px;bottom:12px;width:2px;left:50%;transform:translateX(-50%)}
+.rail.down .line{background:linear-gradient(to bottom,var(--cp) 0%,var(--cp) 88%,rgba(0,133,124,.15) 100%)}
+.rail.up .line{background:linear-gradient(to top,var(--up) 0%,var(--up) 88%,rgba(180,116,31,.15) 100%)}
+.rail .head{position:absolute;left:50%;transform:translateX(-50%);width:0;height:0}
+.rail.down .head{bottom:4px;border-left:6px solid transparent;border-right:6px solid transparent;border-top:9px solid var(--cp)}
+.rail.up .head{top:4px;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:9px solid var(--up)}
+.rail .cap{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  writing-mode:vertical-rl;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+  letter-spacing:.16em;text-transform:uppercase;background:var(--vellum);padding:14px 3px;white-space:nowrap}
+.rail.down .cap{color:var(--cp-deep);transform:translate(-50%,-50%) rotate(180deg)}
+.rail.up .cap{color:var(--up)}
+
+.layers{display:flex;flex-direction:column;gap:0}
+.layer{background:var(--paper);border:1px solid var(--rule);border-bottom:0;padding:20px 22px 24px;position:relative}
+.layer:last-of-type{border-bottom:1px solid var(--rule)}
+.layer.control{border-left:3px solid var(--cp);background:linear-gradient(180deg,#F7FBFA 0%,var(--paper) 30%)}
+.layer.dc{background:#F4F6F9}
+.layer-hd{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.layer-hd .tier{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-3)}
+.layer-hd h2{font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:700;font-size:23px;
+  letter-spacing:-.01em;margin:0}
+.layer.control .layer-hd h2{color:var(--cp-deep)}
+.layer-sub{color:var(--ink-3);font-size:13.5px;margin:0 0 18px;max-width:70ch}
+
+.boundary{
+  display:flex;align-items:center;gap:12px;padding:9px 22px;
+  background:var(--ink);color:#9FB0BE;border-left:1px solid var(--ink);border-right:1px solid var(--ink);
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+}
+.boundary b{color:#fff;font-weight:500}
+.boundary::after{content:"";height:1px;flex:1;background:rgba(255,255,255,.18)}
+
+/* consumer chips */
+.flat{display:flex;flex-wrap:wrap;gap:8px}
+.flat span{border:1px solid var(--rule);padding:7px 12px;font-size:13.5px;color:var(--ink-2);background:#FAFBFD}
+
+/* capability groups */
+.groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.grp{background:var(--paper);padding:15px 16px 17px}
+.grp h3{font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:700;font-size:14.5px;
+  margin:0 0 10px;letter-spacing:-.005em;display:flex;align-items:center;gap:8px}
+.grp h3::before{content:"";width:6px;height:6px;background:var(--cp);flex:none}
+ul{list-style:none;margin:0;padding:0}
+ul li{font-size:13px;color:var(--ink-2);padding:4px 0 4px 13px;position:relative;line-height:1.4}
+ul li::before{content:"";position:absolute;left:0;top:11px;width:5px;height:1px;background:var(--rule)}
+
+/* provider + dc columns */
+.cols{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.cell{background:var(--paper);padding:15px 16px 18px}
+.cell[data-k="rbc"]{background:repeating-linear-gradient(135deg,#fff,#fff 7px,#F6F8FA 7px,#F6F8FA 14px)}
+.layer.dc .cell{background:#FCFDFE}
+.layer.dc .cell[data-k="rbc"]{background:repeating-linear-gradient(135deg,#fff,#fff 7px,#F3F6F9 7px,#F3F6F9 14px)}
+.cell-hd{display:flex;align-items:center;gap:9px;margin-bottom:11px;
+  font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:700;font-size:15px}
+.cell-hd .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.cell-hd .tag{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:9.5px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:400}
+.cell .own{font-size:12.5px;color:var(--ink-3);margin:-4px 0 10px;font-style:normal}
+.empty{background:var(--paper);padding:22px;color:var(--ink-3);font-size:13.5px;grid-column:1/-1}
+
+.note{margin-top:14px;font-size:13.5px;color:var(--ink-3);max-width:66ch}
+.note b{color:var(--ink);font-weight:500}
+
+footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--rule);
+  font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);
+  display:flex;flex-wrap:wrap;gap:8px 22px;letter-spacing:.06em}
+
+/* ---------- substrate operations layer ---------- */
+.layer.ops{
+  border-left:3px solid var(--up);
+  background:linear-gradient(180deg,#FDFAF4 0%,var(--paper) 30%);
+}
+.layer.ops .layer-hd h2{color:var(--up)}
+.opsgrid{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.opsgrid .hd{
+  background:var(--paper);padding:11px 14px;font-family:"IBM Plex Mono",monospace;
+  font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);
+  display:flex;align-items:center;gap:7px;position:sticky;top:0;z-index:2;
+}
+.opsgrid .hd .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.opsgrid .fn{
+  background:#FBFCFD;padding:14px;font-family:"IBM Plex Sans Condensed",sans-serif;
+  font-weight:700;font-size:14.5px;line-height:1.2;
+}
+.opsgrid .fn small{display:block;font-family:"IBM Plex Sans",sans-serif;font-weight:400;
+  font-size:12px;color:var(--ink-3);margin-top:5px;line-height:1.35}
+.opsgrid .c{background:var(--paper);padding:13px 14px;font-size:13px;color:var(--ink-2);line-height:1.42}
+.opsgrid .c.val{background:rgba(180,116,31,.06);color:var(--ink);border-left:2px solid var(--up);font-size:13.5px}
+.opsgrid .c.cpx{background:rgba(0,133,124,.05);color:var(--ink);border-left:2px solid var(--cp)}
+.opsgrid .c.owned{background:repeating-linear-gradient(135deg,#fff,#fff 7px,#F6F8FA 7px,#F6F8FA 14px)}
+.who{
+  display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.1em;
+  text-transform:uppercase;padding:2px 6px;border:1px solid var(--rule);color:var(--ink-3);margin-bottom:7px;
+}
+.who.absorbed{border-color:#D9C4A0;color:#8A6A2E;background:#FDF8EF}
+.who.ours{border-color:var(--cp);color:var(--cp-deep);background:var(--cp-tint)}
+.ops-scroll{overflow-x:auto}
+.ops-inner{min-width:760px}
+
+/* ---------- compliance double-click ---------- */
+.dd{margin-top:52px}
+.dd-panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:14px}
+.panel{background:var(--paper);border:1px solid var(--rule);padding:20px 20px 22px}
+.panel.inherit{border-top:3px solid var(--aws)}
+.panel.operate{border-top:3px solid var(--cp)}
+.panel.overlay{border-top:3px solid var(--azure)}
+.panel h3{font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:700;font-size:17px;margin:0 0 4px}
+.panel .q{font-size:12.5px;color:var(--ink-3);margin:0 0 14px;font-style:normal}
+.chain{
+  display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin-top:16px;
+  border:1px solid var(--rule);background:var(--paper);
+}
+.step{flex:1 1 150px;padding:14px 15px 16px;border-right:1px solid var(--rule);position:relative;min-width:150px}
+.step:last-child{border-right:0}
+.step .n{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--cp);letter-spacing:.14em;display:block;margin-bottom:7px}
+.step b{font-family:"IBM Plex Sans Condensed",sans-serif;font-size:14px;display:block;margin-bottom:5px}
+.step span.d{font-size:12.5px;color:var(--ink-3);line-height:1.4}
+.step.fork{background:#FBFCFD}
+.chain-note{font-size:13px;color:var(--ink-3);margin-top:12px;max-width:70ch}
+.chain-note b{color:var(--ink);font-weight:500}
+.caveat{
+  margin-top:16px;border-left:2px solid var(--rule);padding:2px 0 2px 14px;
+  font-size:12.5px;color:var(--ink-3);max-width:74ch;
+}
+
+@media (max-width:900px){
+  .stack{grid-template-columns:1fr}
+  .layer.ops{padding:18px 16px 20px}
+  .rail{display:none}
+  .wrap{padding:0 14px 56px}
+  header{padding:38px 0 24px}
+  .layer{padding:18px 16px 20px}
+  .boundary{padding:9px 16px;font-size:9.5px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{body{background:#fff}body::before{display:none}.controls{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">RBC Cloud · Zephyr control plane · Capability stack</div>
+  <h1>Intent goes down. Evidence comes back <em>up</em>.</h1>
+  <p class="deck">Five tiers, top to bottom. A consumer declares what they need; the control plane turns it into governed, executable state; a provider runs it; someone keeps that provider running; a data centre carries all of it. Each tier holds capabilities the tier above should never have to think about.</p>
+  <div class="controls">
+    <span class="lbl">Substrate</span>
+    <button class="chip aws" data-prov="aws" aria-pressed="true"><span class="dot"></span>AWS</button>
+    <button class="chip azure" data-prov="azure" aria-pressed="true"><span class="dot"></span>Azure</button>
+    <button class="chip rbc" data-prov="rbc" aria-pressed="false"><span class="dot"></span>RBC Cloud — add next</button>
+  </div>
+</header>
+
+<div class="stack">
+  <div class="rail down"><div class="line"></div><div class="head"></div><div class="cap">Declared intent</div></div>
+
+  <div class="layers">
+
+    <!-- TIER 1 -->
+    <div class="layer">
+      <div class="layer-hd"><span class="tier">Tier 01</span><h2>Consumer</h2></div>
+      <p class="layer-sub">Application and engineering teams. They hold the what and the why. They do not hold credentials, consoles or infrastructure decisions.</p>
+      <div class="flat">
+        <span>Declare workload intent, not implementation</span>
+        <span>Own application design and data classification</span>
+        <span>Set application SLOs</span>
+        <span>Consume via portal, API or pull request</span>
+        <span>Self-serve inside an entitlement</span>
+        <span>Carry cost accountability through showback</span>
+      </div>
+    </div>
+
+    <div class="boundary"><b>Abstraction boundary</b> — below this line, nothing is a consumer decision</div>
+
+    <!-- TIER 2 -->
+    <div class="layer control">
+      <div class="layer-hd"><span class="tier">Tier 02</span><h2>Zephyr control plane</h2></div>
+      <p class="layer-sub">The bank's single interface to every substrate. Built once, applies everywhere. This is where a request becomes governed, versioned, executable state — and where observed reality is reconciled back against it.</p>
+      <div class="groups" id="groups"></div>
+    </div>
+
+    <div class="boundary"><b>Provider adapter boundary</b> — one contract, many substrates</div>
+
+    <!-- TIER 3 -->
+    <div class="layer">
+      <div class="layer-hd"><span class="tier">Tier 03</span><h2>Cloud provider</h2></div>
+      <p class="layer-sub">The substrate's own control plane and managed services. Consumed through adapters, never directly. We orchestrate these capabilities; we do not rebuild them.</p>
+      <div class="cols" id="providerCols"></div>
+    </div>
+
+    <div class="boundary"><b>Value boundary</b> — below this line you buy capability instead of building it</div>
+
+    <!-- TIER 4 -->
+    <div class="layer ops">
+      <div class="layer-hd"><span class="tier">Tier 04</span><h2>Provider-delivered capability</h2></div>
+      <p class="layer-sub">The real product a cloud provider sells sits here, not in the API. Keeping the platform patched, certified, staffed around the clock, audited and ahead of demand is an operating capability we would otherwise have to build. Buying it is the value. Where we run our own substrate, we produce that value ourselves — and should say so plainly.</p>
+      <div class="ops-scroll"><div class="ops-inner"><div class="opsgrid" id="opsGrid"></div></div></div>
+      <p class="note"><b>Bought or produced, the bank still needs one answer.</b> One patch posture, one capacity position, one incident view, one evidence package — assembled by the control plane regardless of who did the underlying work.</p>
+    </div>
+
+    <div class="boundary"><b>Physical boundary</b> — where the stack stops being software</div>
+
+    <!-- TIER 5 -->
+    <div class="layer dc">
+      <div class="layer-hd"><span class="tier">Tier 05</span><h2>Data centre</h2></div>
+      <p class="layer-sub">Steel, power, cabling and silicon. For public cloud this tier is contracted and opaque. For RBC Cloud it is ours to plan, buy and run — which is exactly where the operating model differs.</p>
+      <div class="cols" id="dcCols"></div>
+      <p class="note"><b>The asymmetry that matters:</b> for AWS and Azure, tiers 04 and 05 arrive as purchased capability — absorbed, priced into the bill, evidenced by a report. For RBC Cloud they arrive as headcount, change windows and a loading dock. That is not a weakness in the model; it is the cost line the provider's price tag is hiding, and it belongs in any comparison we publish.</p>
+    </div>
+
+  </div>
+
+  <div class="rail up"><div class="line"></div><div class="head"></div><div class="cap">Observed state · cost · evidence</div></div>
+</div>
+
+<section class="dd">
+  <div class="eyebrow">Double click · compliance</div>
+  <h2 style="font-family:'IBM Plex Sans Condensed',sans-serif;font-weight:700;font-size:26px;margin:0 0 6px">One word, three different obligations</h2>
+  <p class="deck" style="font-size:15px;margin-bottom:22px">Compliance collapses three separate things into one label, and they sit at different tiers with different owners. Separating them is what makes the control plane's job definable.</p>
+
+  <div class="dd-panels">
+    <div class="panel inherit">
+      <h3>Compliance <em style="font-style:italic">of</em> the substrate</h3>
+      <p class="q">Inherited. We evidence it; we do not run it.</p>
+      <ul>
+        <li>SOC 1, SOC 2 and SOC 3 attestation reports</li>
+        <li>ISO 27001, 27017, 27018 certification scope</li>
+        <li>PCI DSS attestation and CSA STAR registry</li>
+        <li>Region, residency and sovereignty commitments</li>
+        <li>Sub-processor register and change notification</li>
+        <li>Penetration testing rules of engagement</li>
+        <li>Report access in place of a right to audit</li>
+      </ul>
+      <p class="q" style="margin:14px 0 0">On RBC Cloud there is nothing to inherit — we generate all of this ourselves.</p>
+    </div>
+
+    <div class="panel operate">
+      <h3>Compliance <em style="font-style:italic">in</em> the substrate</h3>
+      <p class="q">Ours on every provider, without exception.</p>
+      <ul>
+        <li>Encryption standards and key custody</li>
+        <li>Access, privileged access and joiner-mover-leaver</li>
+        <li>Logging completeness and retention periods</li>
+        <li>Segregation of duties across request and approval</li>
+        <li>Configuration baselines and drift closure</li>
+        <li>Vulnerability remediation within SLA</li>
+        <li>Resiliency, backup and DR testing evidence</li>
+        <li>Data classification and handling controls</li>
+      </ul>
+    </div>
+
+    <div class="panel overlay">
+      <h3>Regulatory overlay</h3>
+      <p class="q">Bank-specific obligations that neither provider carries for us.</p>
+      <ul>
+        <li>Third-party and outsourcing risk — materiality assessment</li>
+        <li>Concentration risk across providers and regions</li>
+        <li>Exit and portability plans that are actually tested</li>
+        <li>Technology and cyber risk management standards</li>
+        <li>Regulator right to examine, extended to the provider</li>
+        <li>Cross-border data movement and residency</li>
+        <li>Books, records and retention for Capital Markets</li>
+        <li>Operational resilience for the EU footprint</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="chain">
+    <div class="step fork">
+      <span class="n">Path A</span><b>Provider attestation</b>
+      <span class="d">Report ingested from the provider's trust portal, parsed to controls and scope.</span>
+    </div>
+    <div class="step fork">
+      <span class="n">Path B</span><b>Observed state</b>
+      <span class="d">Collectors and drift detection generate the same evidence for RBC Cloud, continuously.</span>
+    </div>
+    <div class="step">
+      <span class="n">Step 01</span><b>Control mapping</b>
+      <span class="d">Both paths land on one internal control library. Every control tagged inherited or operated.</span>
+    </div>
+    <div class="step">
+      <span class="n">Step 02</span><b>Continuous monitoring</b>
+      <span class="d">Control state evaluated on a cadence, not at audit time.</span>
+    </div>
+    <div class="step">
+      <span class="n">Step 03</span><b>Exception register</b>
+      <span class="d">Gaps carry an owner, a compensating control and an expiry date.</span>
+    </div>
+    <div class="step">
+      <span class="n">Step 04</span><b>Evidence package</b>
+      <span class="d">One artefact an auditor or regulator can read, whatever the substrate.</span>
+    </div>
+  </div>
+  <p class="chain-note"><b>The design point:</b> two ingestion paths, one control library, one output. If public cloud evidence and RBC Cloud evidence ever land in different systems, we have built two compliance functions and will be asked about both.</p>
+  <p class="caveat">Regulatory items above are indicative of what typically applies to a Canadian bank with US and EU activity. Confirm the actual obligation set, thresholds and materiality definitions with risk and compliance partners before this goes in front of a steering committee.</p>
+</section>
+
+<footer>
+  <span>Zephyr hybrid cloud control plane</span>
+  <span>Capability stack — draft v0.1</span>
+  <span>RBC Cloud tier is a placeholder pending validation</span>
+</footer>
+
+</div>
+
+<script>
+const PROV = {
+  aws:   {name:"AWS",       color:"#FF9900", tag:"live"},
+  azure: {name:"Azure",     color:"#0078D4", tag:"live"},
+  rbc:   {name:"RBC Cloud", color:"#7A8699", tag:"to add"}
+};
+
+const GROUPS = [
+  {t:"Experience & intake", i:[
+    "Service catalogue and offering definitions",
+    "Portal, API and GitOps request paths",
+    "Entitlement and quota by application and LOB",
+    "Cost estimate before commitment",
+    "Approval routing and segregation of duties"]},
+  {t:"Governance & policy", i:[
+    "Policy-as-code gates before apply (OPA, Sentinel)",
+    "Control library mapped to each resource type",
+    "Naming, tagging and ownership standards",
+    "Change record and immutable audit trail",
+    "Control attestation and audit evidence"]},
+  {t:"Orchestration & delivery", i:[
+    "Certified blueprint and module registry",
+    "Terraform/OpenTofu execution and state ownership",
+    "Configuration management (Ansible/AAP)",
+    "Workflow orchestration and idempotent runs",
+    "Provider adapters — one interface, many substrates"]},
+  {t:"Identity, secrets & connectivity", i:[
+    "Brokered workload identity across substrates",
+    "Secret issuance, injection and rotation",
+    "Certificate and key lifecycle",
+    "Address management, DNS and connectivity requests",
+    "Network zone and segmentation model"]},
+  {t:"Inventory & assurance", i:[
+    "Single inventory across on-prem and cloud",
+    "Drift detection and reconciliation to declared state",
+    "Patch management carried to closure",
+    "Vulnerability management and remediation",
+    "Configuration intelligence and disposition queue"]},
+  {t:"Observability & operations", i:[
+    "Telemetry contract and collection standard",
+    "Unified health and SLO view",
+    "Event routing into incident management",
+    "Runbooks and automated remediation",
+    "Service-level reporting by application"]},
+  {t:"Economics & capacity", i:[
+    "Home of Best Fit placement decisions",
+    "Capacity management and forecasting",
+    "Right-sizing, idle reclaim, spot candidates",
+    "End-of-life refresh planning",
+    "Showback, chargeback and unit cost"]},
+  {t:"Data & AI platform", i:[
+    "Database service definitions and HA topologies",
+    "Backup, restore and migration services",
+    "GPU quota and scheduling policy",
+    "Model gateway and agent governance (Lumina)",
+    "Human-in-the-loop approval for agent actions"]}
+];
+
+const PROVIDER_CAPS = {
+  aws:[
+    "Resource control plane and regional APIs",
+    "Managed services — EC2, EKS, RDS, S3, Lambda",
+    "IAM, KMS, Secrets Manager",
+    "VPC, Transit Gateway, PrivateLink, Route 53",
+    "CloudWatch, Config, Security Hub, GuardDuty",
+    "Quotas, capacity pools, Savings Plans",
+    "Published service SLAs"],
+  azure:[
+    "Azure Resource Manager and regional APIs",
+    "Managed services — VM, AKS, Azure SQL, Blob, Functions",
+    "Entra ID, Key Vault, Managed Identity",
+    "VNet, Virtual WAN, Private Link, Azure DNS",
+    "Monitor, Policy, Defender for Cloud",
+    "Quotas, capacity pools, Reservations",
+    "Published service SLAs"],
+  rbc:[
+    "Provisioning APIs for VM, container and bare metal",
+    "OpenShift fleet, VMaaS, BMaaS, DBaaS",
+    "Internal PKI and secret store",
+    "ACI fabric, DNS, F5 load balancing",
+    "Platform monitoring, scanners and collectors",
+    "Capacity model for the owned fleet",
+    "Internal service levels and on-call"]
+};
+
+const DC_CAPS = {
+  aws:{own:"Operated by AWS — contracted, not visible to us",i:[
+    "Regions and availability zones",
+    "Power, cooling, physical security",
+    "Hardware lifecycle and refresh",
+    "Capacity obtained through quota, not procurement"]},
+  azure:{own:"Operated by Microsoft — contracted, not visible to us",i:[
+    "Regions and availability zones",
+    "Power, cooling, physical security",
+    "Hardware lifecycle and refresh",
+    "Capacity obtained through quota, not procurement"]},
+  rbc:{own:"Operated by RBC — ours to plan, buy and run",i:[
+    "Rack, cage, structured cabling, power and cooling",
+    "x86 fleet and GPU farm hardware lifecycle",
+    "Redfish-driven discovery, firmware, BIOS and OS lay-down",
+    "Storage arrays and backup infrastructure",
+    "Network fabric and physical connectivity",
+    "Floor plan, DCIM and capacity runway",
+    "Procurement, asset and vendor lifecycle"]}
+};
+
+const OPS = [
+  {fn:"Platform patching",
+   sub:"Hypervisor, host OS, control plane services, managed engine versions",
+   val:"A fleet that stays current without a change window of yours. Host patching, live migration and managed engine upgrades, absorbed entirely.",
+   aws:"Hosts patched and live-migrated with no action from us. Managed engines upgraded on a published cadence.",
+   azure:"Host updates applied invisibly. Managed tiers upgraded on Microsoft's cadence with a configurable window.",
+   rbc:"No one absorbs it. We staff and run firmware, BIOS, hypervisor, OpenShift versions and database engines — real windows, real regression risk.",
+   cp:"Ingest provider maintenance events into one change calendar; own the full pipeline for RBC Cloud; report a single patch posture across all substrates."},
+  {fn:"Platform compliance",
+   sub:"Certification and attestation for the substrate itself",
+   val:"An audited platform on day one. Certification maintained continuously and published as artefacts you can put in front of a regulator.",
+   aws:"SOC, ISO, PCI and CSA attestations kept current and available on demand.",
+   azure:"Equivalent attestation set through the trust portal, with its own scope boundaries to reconcile.",
+   rbc:"Nothing to inherit. Every control is one we operate, evidence and defend ourselves.",
+   cp:"Ingest attestation reports, map them to the internal control library, mark every control inherited or operated, and generate the equivalent for RBC Cloud."},
+  {fn:"Capacity",
+   sub:"Forecasting, buildout, allocation and headroom",
+   val:"Capacity without a purchase order. Demand forecasting, fleet buildout and refresh carried on someone else's balance sheet, released to us as quota.",
+   aws:"Buildout and quota engineering are theirs. We consume it as limits and availability, and buy commitment discounts against it.",
+   azure:"Region and SKU capacity managed for us, surfaced as quota and reservation options.",
+   rbc:"We forecast, procure and install. Hardware lead times, power, cooling, floor headroom and GPU allocation policy are ours to solve.",
+   cp:"Normalise 'can I get it' into one answer. Treat quota as a managed resource and forecast owned and rented capacity together."},
+  {fn:"Incident management",
+   sub:"Detection, triage, communication, remediation, postmortem",
+   val:"A 24/7 platform operations organisation we don't staff. Detection, remediation and status communication for the substrate itself.",
+   aws:"They detect and remediate; we consume health dashboard and API signals. Root cause arrives on their terms.",
+   azure:"Service and resource health signals, with post-incident reviews on Microsoft's schedule and depth.",
+   rbc:"We own the whole loop — detection, on-call, triage, client communication, root cause and corrective action.",
+   cp:"Subscribe to provider health APIs, correlate impact to affected applications through inventory, and present one incident view wherever the fault sits."},
+  {fn:"Platform & service audit",
+   sub:"Who examines the substrate, and how it is proven",
+   val:"Independent assurance already performed. Internal and external audit of the platform delivered as a report rather than a programme we run.",
+   aws:"Internal and external audit performed continuously; audit rights satisfied through report access and contractual examination provisions.",
+   azure:"Comparable model — report-based audit rights with defined regulator examination terms.",
+   rbc:"Internal audit and the regulator examine us directly. Findings land on our teams with no attestation to point at.",
+   cp:"Maintain the control mapping and exception register so an examiner receives one evidence package, whether the control was inherited or operated."}
+];
+
+let active = {aws:true, azure:true, rbc:false};
+
+function renderGroups(){
+  document.getElementById("groups").innerHTML = GROUPS.map(g=>
+    `<div class="grp"><h3>${g.t}</h3><ul>${g.i.map(x=>`<li>${x}</li>`).join("")}</ul></div>`).join("");
+}
+
+function renderCols(){
+  const on = Object.keys(PROV).filter(k=>active[k]);
+  const grid = on.length ? `repeat(${on.length},1fr)` : "1fr";
+
+  const p = document.getElementById("providerCols");
+  p.style.gridTemplateColumns = grid;
+  p.innerHTML = on.length ? on.map(k=>`
+    <div class="cell" data-k="${k}">
+      <div class="cell-hd"><span class="dot" style="background:${PROV[k].color}"></span>${PROV[k].name}
+        <span class="tag">${PROV[k].tag}</span></div>
+      <ul>${PROVIDER_CAPS[k].map(x=>`<li>${x}</li>`).join("")}</ul>
+    </div>`).join("")
+    : `<div class="empty">Turn on a substrate above to populate this tier.</div>`;
+
+  const d = document.getElementById("dcCols");
+  d.style.gridTemplateColumns = grid;
+  d.innerHTML = on.length ? on.map(k=>`
+    <div class="cell" data-k="${k}">
+      <div class="cell-hd"><span class="dot" style="background:${PROV[k].color}"></span>${PROV[k].name}
+        <span class="tag">${k==="rbc"?"owned":"contracted"}</span></div>
+      <p class="own">${DC_CAPS[k].own}</p>
+      <ul>${DC_CAPS[k].i.map(x=>`<li>${x}</li>`).join("")}</ul>
+    </div>`).join("")
+    : `<div class="empty">Turn on a substrate above to populate this tier.</div>`;
+}
+
+function renderOps(){
+  const on = Object.keys(PROV).filter(k=>active[k]);
+  const g = document.getElementById("opsGrid");
+  g.style.gridTemplateColumns = `160px 1.25fr ${on.map(()=> "1fr").join(" ")} 1.15fr`;
+  let html = `<div class="hd">Capability</div>`
+    + `<div class="hd"><span class="dot" style="background:#B4741F"></span>Value the provider delivers</div>`
+    + on.map(k=>`<div class="hd"><span class="dot" style="background:${PROV[k].color}"></span>${PROV[k].name}</div>`).join("")
+    + `<div class="hd"><span class="dot" style="background:#00857C"></span>Control plane must</div>`;
+  OPS.forEach(r=>{
+    html += `<div class="fn">${r.fn}<small>${r.sub}</small></div>`;
+    html += `<div class="c val">${r.val}</div>`;
+    html += on.map(k=>{
+      const ours = k==="rbc";
+      return `<div class="c ${ours?"owned":""}">
+        <span class="who ${ours?"ours":"absorbed"}">${ours?"value we must produce":"value we buy"}</span>
+        ${r[k]}</div>`;
+    }).join("");
+    html += `<div class="c cpx">${r.cp}</div>`;
+  });
+  g.innerHTML = html;
+  document.querySelector(".ops-inner").style.minWidth = (190 + 280 + on.length*220 + 250) + "px";
+}
+
+document.querySelectorAll(".chip[data-prov]").forEach(b=>{
+  b.addEventListener("click",()=>{
+    const k=b.dataset.prov; active[k]=!active[k];
+    b.setAttribute("aria-pressed",active[k]); renderCols(); renderOps();
+  });
+});
+
+renderGroups();
+renderCols();
+renderOps();
+</script>
+</body>
+</html>
