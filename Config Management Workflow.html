@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <title>Config Management Workflow</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --ink: #061a33;
+      --ink-soft: #394c62;
+      --paper: #f6f8fb;
+      --surface: #ffffff;
+      --surface-2: #edf3f9;
+      --line: #cad6e2;
+      --line-strong: #9db0c4;
+      --blue: #0754a6;
+      --blue-strong: #003b7e;
+      --blue-soft: #dcecff;
+      --navy: #061e46;
+      --yellow: #f2bd18;
+      --yellow-soft: #fff3bd;
+      --green: #176d4f;
+      --green-soft: #dff4eb;
+      --grid-line: rgba(7, 84, 166, .065);
+      --shadow: 0 18px 50px rgba(6, 30, 70, .12);
+      --radius-s: 8px;
+      --radius-m: 14px;
+      --radius-l: 24px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --ink: #f4f8fc;
+        --ink-soft: #b9c7d6;
+        --paper: #071426;
+        --surface: #0d2038;
+        --surface-2: #132a46;
+        --line: #294561;
+        --line-strong: #476681;
+        --blue: #72b4ff;
+        --blue-strong: #99c9ff;
+        --blue-soft: #12385f;
+        --navy: #020b17;
+        --yellow: #ffd04a;
+        --yellow-soft: #43380e;
+        --green: #73d6ad;
+        --green-soft: #123d32;
+        --grid-line: rgba(114, 180, 255, .07);
+        --shadow: 0 18px 60px rgba(0, 0, 0, .28);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: 48px 48px;
+      color: var(--ink);
+      font-family: "IBM Plex Sans", sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { font: inherit; }
+    h1, h2, h3, p { margin-top: 0; }
+    .skip-link {
+      position: fixed;
+      left: 12px;
+      top: -100px;
+      z-index: 99;
+      background: var(--surface);
+      color: var(--ink);
+      padding: 10px 14px;
+      border-radius: var(--radius-s);
+    }
+    .skip-link:focus { top: 12px; }
+    .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+    .page { min-height: 100vh; }
+
+    /* Hero — matches the Patch Management detail hero */
+    .detail-hero {
+      color: #fff;
+      background-image:
+        linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px),
+        linear-gradient(118deg, rgba(6,30,70,.995), rgba(5,60,121,.96));
+      background-size: 48px 48px, 48px 48px, auto;
+      padding: 78px 0 70px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 24px;
+      color: rgba(255,255,255,.62);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+    }
+    .breadcrumb [aria-current="page"] { color: #fff; }
+    .detail-hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr);
+      gap: 72px;
+      align-items: end;
+    }
+    .workflow-hero-grid { grid-template-columns: minmax(0, .92fr) minmax(430px, 1.08fr); align-items: center; }
+    .detail-hero h1 { max-width: 760px; margin-bottom: 20px; font-size: clamp(40px, 5vw, 66px); }
+    .detail-hero p { max-width: 720px; margin-bottom: 0; color: rgba(255,255,255,.76); font-size: 19px; }
+    .detail-summary {
+      padding: 22px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 14px;
+      background: rgba(0,0,0,.15);
+    }
+    .detail-summary dl { margin: 0; display: grid; gap: 15px; }
+    .detail-summary div { display: grid; grid-template-columns: 110px 1fr; gap: 14px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,.12); }
+    .detail-summary div:last-child { padding-bottom: 0; border-bottom: 0; }
+    .detail-summary dt { color: rgba(255,255,255,.52); font-family: "IBM Plex Mono", monospace; font-size: 10px; text-transform: uppercase; }
+    .detail-summary dd { margin: 0; color: #fff; font-size: 13px; }
+    .workflow-summary { padding: 0; overflow: hidden; }
+    .workflow-summary dl { gap: 0; }
+    .workflow-summary div { grid-template-columns: 104px 1fr; gap: 16px; padding: 13px 18px; }
+    .workflow-summary div:last-child { padding-bottom: 13px; }
+    .workflow-summary dt { padding-top: 2px; }
+    .workflow-summary dd { line-height: 1.4; }
+
+    /* Buttons */
+    .button {
+      min-height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 12px 18px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-s);
+      text-decoration: none;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .button.primary { background: var(--yellow); color: #10203a; }
+    .button:hover { filter: brightness(1.04); }
+    .button:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+
+    /* Principles strip — dark navy, like the Patch autonomy strip */
+    .autonomy-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid rgba(255,255,255,.17);
+      border-bottom: 1px solid rgba(255,255,255,.17);
+      background: var(--navy);
+      color: #fff;
+    }
+    .autonomy-point {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: start;
+      padding: 24px 26px;
+      border-right: 1px solid rgba(255,255,255,.15);
+    }
+    .autonomy-point:last-child { border-right: 0; }
+    .autonomy-mark {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.28);
+      border-radius: 50%;
+      color: var(--yellow);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .autonomy-point strong { display: block; margin-bottom: 4px; font-size: 15px; }
+    .autonomy-point span:last-child { color: rgba(255,255,255,.66); font-size: 12px; }
+
+    /* Sections */
+    .detail-section { padding: 78px 0; }
+    .detail-section.alt { background: var(--surface-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .detail-section-head {
+      display: grid;
+      grid-template-columns: .72fr 1.28fr;
+      gap: 54px;
+      margin-bottom: 38px;
+      align-items: start;
+    }
+    .detail-section-head h2 { margin: 0; font-size: clamp(30px, 3.5vw, 44px); line-height: 1.08; letter-spacing: -.03em; }
+    .detail-section-head p { margin: 0; color: var(--ink-soft); font-size: 17px; }
+
+    /* Journey card */
+    .patch-journey {
+      margin-bottom: 34px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--surface);
+      box-shadow: 0 22px 60px rgba(6,30,70,.09);
+    }
+    .patch-journey-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 22px;
+      padding: 22px 26px;
+      border-bottom: 1px solid var(--line);
+    }
+    .patch-journey-head strong { display: block; font-size: 18px; }
+    .patch-journey-head span { display: block; color: var(--ink-soft); font-size: 12px; }
+    .journey-status {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--blue-strong) !important;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px !important;
+      font-weight: 600;
+    }
+    .journey-status::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 4px var(--green-soft);
+    }
+
+    /* Workflow canvas */
+    .journey-canvas {
+      padding: 28px 26px 26px;
+      background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+    .journey-workflow {
+      position: relative;
+      min-height: 780px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background:
+        radial-gradient(circle at 1px 1px, var(--grid-line) 1px, transparent 1.5px),
+        var(--surface-2);
+      background-size: 24px 24px;
+    }
+    .journey-connectors {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .journey-connectors-mobile { display: none; }
+    .journey-route {
+      fill: none;
+      stroke: var(--line-strong);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 7 10;
+      vector-effect: non-scaling-stroke;
+    }
+    .journey-route[data-active="true"] {
+      stroke: var(--green);
+      stroke-width: 4;
+      filter: drop-shadow(0 0 4px color-mix(in srgb, var(--green) 35%, transparent));
+    }
+    .journey-support-route {
+      fill: none;
+      stroke: var(--blue);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-dasharray: 3 7;
+      vector-effect: non-scaling-stroke;
+    }
+    .journey-support-route[data-active="true"] {
+      stroke: var(--green);
+      filter: drop-shadow(0 0 4px color-mix(in srgb, var(--green) 35%, transparent));
+    }
+    .journey-flow-node {
+      --node-x: 0%;
+      --node-y: 0px;
+      position: absolute;
+      z-index: 2;
+      left: var(--node-x);
+      top: var(--node-y);
+      width: 12.5%;
+      min-height: 78px;
+      display: grid;
+      grid-template-columns: 29px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      background: var(--surface);
+      color: var(--ink);
+      text-align: left;
+      box-shadow: 0 8px 22px rgba(6,30,70,.08);
+    }
+    button.journey-flow-node { cursor: pointer; }
+    .journey-flow-node .node-state {
+      width: 29px;
+      height: 29px;
+      display: grid;
+      place-items: center;
+      border: 2px solid var(--line-strong);
+      border-radius: 50%;
+      background: var(--surface);
+      color: var(--ink-soft);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px;
+      font-weight: 600;
+    }
+    .journey-flow-node .node-copy { min-width: 0; }
+    .journey-flow-node small {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--blue);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: .03em;
+      line-height: 1.2;
+    }
+    .journey-flow-node strong { display: block; font-size: 12px; line-height: 1.2; }
+    .journey-flow-node em { display: block; margin-top: 3px; color: var(--ink-soft); font-size: 9px; font-style: normal; line-height: 1.25; }
+    .journey-flow-node[data-complete="true"] { border-color: color-mix(in srgb, var(--green) 55%, var(--line)); }
+    .journey-flow-node[data-complete="true"] .node-state { border-color: var(--green); background: var(--green); color: #fff; }
+    .journey-flow-node[aria-selected="true"] {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px var(--blue-soft), 0 14px 30px rgba(6,30,70,.14);
+    }
+    .journey-flow-node[aria-selected="true"] .node-state { border-color: var(--navy); background: var(--navy); color: var(--yellow); }
+    .journey-flow-node:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+    .journey-flow-node.config-input {
+      border-style: dashed;
+      background: color-mix(in srgb, var(--surface) 91%, var(--blue-soft));
+    }
+    /* Ansible Playbooks — the single blue element in the source diagram */
+    .journey-flow-node.ansible-artifact {
+      border-color: var(--blue);
+      border-width: 2px;
+      background: color-mix(in srgb, var(--surface) 78%, var(--blue-soft));
+      box-shadow: 0 8px 22px rgba(6,30,70,.08), 0 0 0 1px color-mix(in srgb, var(--blue) 40%, transparent);
+    }
+    .journey-flow-node.ansible-artifact .node-state {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: var(--surface);
+    }
+    .journey-flow-node.ansible-artifact[aria-selected="true"] .node-state {
+      border-color: var(--navy);
+      background: var(--navy);
+      color: var(--yellow);
+    }
+    /* Inline enabler cards — patch-page treatment, byte-for-byte from the
+       governance site, including the yellow "bring your playbooks" card */
+    .journey-inline-enabler {
+      --node-x: 0%;
+      --node-y: 0px;
+      position: absolute;
+      z-index: 2;
+      left: var(--node-x);
+      top: var(--node-y);
+      width: 12.5%;
+      min-height: 58px;
+      padding: 9px 10px;
+      border: 2px dotted var(--blue);
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--surface) 91%, var(--blue-soft));
+      color: var(--ink);
+      box-shadow: 0 6px 16px rgba(6,30,70,.06);
+    }
+    .journey-inline-enabler.playbook-enabler {
+      border: 2px solid var(--yellow);
+      background: color-mix(in srgb, var(--surface) 78%, var(--yellow-soft));
+      box-shadow: 0 0 0 1px var(--blue-strong), 0 8px 20px rgba(6,30,70,.1);
+    }
+    .journey-inline-enabler.playbook-enabler small { color: var(--blue-strong); }
+    .journey-inline-enabler small {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--blue);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 7px;
+      font-weight: 600;
+      letter-spacing: .03em;
+      line-height: 1.2;
+    }
+    .journey-inline-enabler strong { display: block; font-size: 10px; line-height: 1.25; }
+    .journey-inline-enabler em { display: block; margin-top: 3px; color: var(--ink-soft); font-size: 8px; font-style: normal; line-height: 1.25; }
+    /* AI sparkle mark — the AI emblem from the source whiteboard diagram,
+       carried on every node where AI is used */
+    .journey-flow-node .ai-mark {
+      position: absolute;
+      top: -15px;
+      right: -12px;
+      z-index: 6;
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      filter: drop-shadow(0 3px 5px rgba(6,30,70,.35));
+    }
+    .journey-flow-node .ai-mark svg { width: 100%; height: 100%; display: block; }
+    .journey-flow-legend {
+      position: absolute;
+      left: 22px;
+      top: 18px;
+      z-index: 3;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      color: var(--ink-soft);
+      font-size: 10px;
+    }
+    .journey-flow-legend span { display: inline-flex; align-items: center; gap: 7px; }
+    .journey-flow-legend i { width: 20px; height: 3px; border-radius: 3px; background: var(--green); }
+    .journey-flow-legend .legend-upcoming i { background: var(--line-strong); }
+    .journey-flow-legend .legend-input {
+      color: var(--blue-strong);
+      font-weight: 600;
+    }
+    .journey-flow-legend .legend-input i {
+      width: 20px;
+      height: 12px;
+      border: 2px dashed var(--blue);
+      border-radius: 3px;
+      background: color-mix(in srgb, var(--surface) 88%, var(--blue-soft));
+    }
+    .journey-flow-legend .legend-ansible {
+      color: var(--blue-strong);
+      font-weight: 600;
+    }
+    .journey-flow-legend .legend-ansible i {
+      width: 20px;
+      height: 12px;
+      border: 2px solid var(--blue);
+      border-radius: 4px;
+      background: color-mix(in srgb, var(--surface) 78%, var(--blue-soft));
+    }
+    .journey-flow-legend .legend-playbook {
+      color: var(--blue-strong);
+      font-weight: 600;
+    }
+    .journey-flow-legend .legend-playbook i {
+      width: 20px;
+      height: 12px;
+      border: 2px solid var(--yellow);
+      border-radius: 3px;
+      background: color-mix(in srgb, var(--surface) 78%, var(--yellow-soft));
+      box-shadow: 0 0 0 1px var(--blue-strong);
+    }
+    .journey-flow-legend .legend-ai i {
+      width: auto;
+      height: auto;
+      border-radius: 0;
+      background: none;
+    }
+    .journey-flow-legend .legend-ai svg { width: 22px; height: 22px; display: block; }
+    .workflow-inner { display: contents; }
+
+    /* Stage detail panel */
+    .journey-stage-content {
+      border-top: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .journey-stage-content .orchestration-detail {
+      justify-content: flex-start;
+      padding: 34px 28px 30px;
+      border-left: 0;
+      background: var(--surface);
+    }
+    .orchestration-detail {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 46px 48px;
+      border-left: 1px solid var(--line);
+      background:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+        var(--surface-2);
+      background-size: 36px 36px;
+    }
+    .orchestration-detail-top { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 30px; }
+    .journey-stage-content .orchestration-detail-top { margin-bottom: 22px; }
+    .stage-position { color: var(--blue); font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 600; }
+    .lifecycle-play {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 11px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--blue-strong);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .lifecycle-play::before { content: "▶"; font-size: 9px; }
+    .lifecycle-play[aria-pressed="true"]::before { content: "Ⅱ"; font-size: 10px; }
+    .orchestration-detail h3 { max-width: 560px; margin: 0 0 12px; font-size: clamp(28px, 3.2vw, 42px); line-height: 1.08; letter-spacing: -.025em; }
+    .orchestration-detail > p { max-width: 660px; margin: 0 0 34px; color: var(--ink-soft); font-size: 17px; }
+    .journey-stage-content .orchestration-detail > p { max-width: 900px; margin-bottom: 26px; }
+    .stage-expansion {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      margin-bottom: 26px;
+      border-top: 1px solid var(--line-strong);
+      border-bottom: 1px solid var(--line);
+    }
+    .stage-expansion article { min-width: 0; padding: 20px 20px 20px 0; }
+    .stage-expansion article + article { padding-left: 20px; border-left: 1px solid var(--line); }
+    .stage-expansion span {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--blue);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: .04em;
+    }
+    .stage-expansion strong { display: block; font-size: 13px; line-height: 1.45; }
+    .stage-facts { display: grid; grid-template-columns: 1fr 1fr; margin: 0; border-top: 0; }
+    .stage-fact { padding: 20px 22px 0 0; }
+    .stage-fact + .stage-fact { padding-left: 22px; border-left: 1px solid var(--line); }
+    .stage-fact dt { margin-bottom: 7px; color: var(--blue); font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+    .stage-fact dd { margin: 0; color: var(--ink); font-size: 13px; }
+    .stage-systems { margin: 26px 0 0; color: var(--ink-soft); font-family: "IBM Plex Mono", monospace; font-size: 11px; }
+
+    /* Supporting model panel */
+    .panel-kicker { display: block; margin-bottom: 6px; color: var(--blue); font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600; }
+    .autonomy-model {
+      display: grid;
+      grid-template-columns: .82fr 1.18fr;
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .autonomy-definition { padding: 32px; border-right: 1px solid var(--line); }
+    .autonomy-definition .panel-kicker { margin-bottom: 12px; }
+    .autonomy-definition h3 { margin: 0 0 10px; font-size: 25px; line-height: 1.15; }
+    .autonomy-definition p { margin: 0; color: var(--ink-soft); font-size: 14px; }
+    .autonomy-path { padding: 30px 32px; background: var(--surface-2); }
+    .autonomy-path > strong { display: block; margin-bottom: 18px; font-size: 15px; }
+    .autonomy-path-line { display: grid; grid-template-columns: repeat(5, 1fr); position: relative; }
+    .autonomy-path-line::before { content: ""; position: absolute; left: 9%; right: 9%; top: 13px; height: 1px; background: var(--line-strong); }
+    .autonomy-path-step { position: relative; z-index: 1; padding: 0 7px; text-align: center; }
+    .autonomy-path-step i { width: 27px; height: 27px; display: grid; place-items: center; margin: 0 auto 10px; border-radius: 50%; background: var(--blue); color: #fff; font-family: "IBM Plex Mono", monospace; font-size: 9px; font-style: normal; }
+    .autonomy-path-step span { display: block; color: var(--ink-soft); font-size: 11px; line-height: 1.3; }
+
+    /* Product spine */
+    .product-spine {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .spine-item { display: grid; grid-template-columns: 72px 1fr; gap: 18px; padding: 27px 28px 27px 0; }
+    .spine-item:nth-child(even) { padding-left: 28px; border-left: 1px solid var(--line); }
+    .spine-item:nth-child(n+3) { border-top: 1px solid var(--line); }
+    .spine-mark { color: var(--blue); font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 600; }
+    .spine-item h3 { margin: 0 0 6px; font-size: 18px; }
+    .spine-item p { margin: 0; color: var(--ink-soft); font-size: 13px; }
+
+    /* CTA + footer */
+    .page-cta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      padding: 34px;
+      border-radius: 16px;
+      background: var(--navy);
+      color: #fff;
+    }
+    .page-cta h2 { margin: 0 0 6px; font-size: 28px; }
+    .page-cta p { margin: 0; color: rgba(255,255,255,.66); }
+    .route-footer { padding: 28px 0 calc(28px + env(safe-area-inset-bottom)); background: var(--navy); color: rgba(255,255,255,.62); font-size: 13px; }
+    .footer-inner { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+    .footer-inner span:last-child { font-family: "IBM Plex Mono", monospace; font-size: 11px; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .journey-route, .journey-support-route { animation: journey-line-flow .9s linear infinite; }
+      .journey-flow-node[aria-selected="true"] .node-state { animation: journey-node-pulse 1.7s ease-in-out infinite; }
+      @keyframes journey-line-flow { to { stroke-dashoffset: -34; } }
+      @keyframes journey-node-pulse { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--blue-soft) 55%, transparent); } }
+    }
+    @media (max-width: 1100px) {
+      .detail-hero-grid { gap: 44px; }
+      .workflow-hero-grid { grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); }
+    }
+    @media (max-width: 900px) {
+      .detail-hero { padding: 52px 0 48px; }
+      .detail-hero p { font-size: 17px; }
+      .detail-hero-grid, .detail-section-head { grid-template-columns: 1fr; gap: 28px; }
+      .detail-summary { max-width: 620px; }
+      .detail-summary div { grid-template-columns: 88px 1fr; }
+      .detail-section { padding: 58px 0; }
+      .autonomy-strip { grid-template-columns: 1fr; }
+      .autonomy-point { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.15); }
+      .autonomy-point:last-child { border-bottom: 0; }
+      .autonomy-model { grid-template-columns: 1fr; }
+      .autonomy-definition { border-right: 0; border-bottom: 1px solid var(--line); }
+      .patch-journey { border-radius: 12px; }
+      .patch-journey-head { align-items: flex-start; padding: 18px; }
+      .journey-status { text-align: right; }
+      .journey-canvas { padding: 20px 14px; }
+      .journey-workflow { min-height: 1184px; }
+      .journey-connectors { display: none; }
+      .journey-connectors.journey-connectors-mobile { display: block; }
+      .journey-flow-legend { left: 14px; top: 14px; gap: 6px 10px; }
+      /* Compact label keeps the six-entry legend above the flow on narrow screens */
+      .journey-flow-legend .legend-playbook { font-size: 0; }
+      .journey-flow-legend .legend-playbook::after { content: "Bring your playbooks"; font-size: 10px; }
+      .journey-flow-node { min-height: 92px; }
+      .journey-flow-node .node-state { width: 26px; height: 26px; }
+      .journey-flow-node[data-index="0"] { left: 15%; top: 88px; width: 70% !important; }
+      .journey-flow-node[data-index="1"] { left: 3%; top: 214px; width: 43% !important; }
+      .journey-flow-node[data-index="2"] { left: 54%; top: 214px; width: 43% !important; }
+      .journey-flow-node[data-index="3"] { left: 22%; top: 356px; width: 56% !important; }
+      .journey-flow-node[data-index="4"] { left: 8%; top: 482px; width: 42% !important; }
+      .journey-flow-node[data-index="8"] { left: 55%; top: 482px; width: 42% !important; }
+      .journey-flow-node[data-index="9"] { left: 55%; top: 614px; width: 42% !important; }
+      .journey-flow-node[data-index="5"] { left: 3%; top: 752px; width: 42% !important; }
+      .journey-flow-node[data-index="6"] { left: 55%; top: 752px; width: 42% !important; }
+      .journey-flow-node[data-index="7"] { left: 29%; top: 880px; width: 42% !important; }
+      /* Yellow enabler cards — full-width mobile cards below the flow (patch-page
+         mobile copy sizes), sized so the smaller label never wraps the kicker */
+      .journey-inline-enabler small { font-size: 8px; }
+      .journey-inline-enabler strong { font-size: 11px; }
+      .journey-inline-enabler em { font-size: 9px; }
+      .journey-inline-enabler.playbook-enabler { padding: 11px 12px; }
+      .journey-inline-enabler.playbook-enabler[data-enabler="playbooks"] { left: 3% !important; top: 1010px !important; width: 94% !important; }
+      .journey-inline-enabler.playbook-enabler[data-enabler="execution"] { left: 3% !important; top: 1093px !important; width: 94% !important; }
+      .journey-stage-content .orchestration-detail { min-height: 0; padding: 28px 22px 24px; border-top: 0; }
+      .stage-expansion { grid-template-columns: 1fr; }
+      .stage-expansion article { padding: 16px 0; }
+      .stage-expansion article + article { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
+      .stage-facts { grid-template-columns: 1fr; }
+      .stage-fact { padding-right: 0; }
+      .stage-fact + .stage-fact { padding-left: 0; border-left: 0; }
+      .product-spine { grid-template-columns: 1fr; }
+      .spine-item, .spine-item:nth-child(even) { grid-template-columns: 56px 1fr; padding: 22px 0; border-left: 0; }
+      .spine-item:nth-child(n+2) { border-top: 1px solid var(--line); }
+      .page-cta { align-items: flex-start; flex-direction: column; padding: 26px 22px; }
+    }
+    @media (max-width: 560px) {
+      .detail-hero { padding: 46px 0 40px; }
+      .journey-status { font-size: 8px !important; }
+      .stage-position { font-size: 10px; }
+      .page-cta h2 { font-size: 23px; }
+    }
+  </style>
+</head>
+<body>
+<a class="skip-link" href="#config-main">Skip to the workflow</a>
+<div class="page">
+  <header class="detail-hero">
+    <div class="shell">
+      <nav class="breadcrumb" aria-label="Breadcrumb"><span>Overview</span><span aria-hidden="true">/</span><span>Configuration Management</span><span aria-hidden="true">/</span><span aria-current="page">Config Management Workflow</span></nav>
+      <div class="detail-hero-grid workflow-hero-grid">
+        <div>
+          <h1>Config Management Workflow</h1>
+          <p>Turn governed security and operational standards into reusable Ansible automation—from baseline documents through AI-augmented playbook generation to scheduled execution, verified assets and evidence-backed governance.</p>
+        </div>
+        <aside class="detail-summary workflow-summary" aria-label="Workflow capabilities">
+          <dl>
+            <div><dt>Authority</dt><dd>Document Governance Process maintains the approved source of configuration intent</dd></div>
+            <div><dt>Inputs</dt><dd>Security Baselines (TSS) and Operational Baselines (Configs) converge before generation</dd></div>
+            <div><dt>Automation</dt><dd>AI-augmented generation builds reusable, versioned Ansible playbooks</dd></div>
+            <div><dt>Execution</dt><dd>Scheduling plus the Ansible Automation Platform run approved playbooks on assets</dd></div>
+            <div><dt>Assurance</dt><dd>The Data Store returns lifecycle evidence to KPIs, tracking and governance</dd></div>
+          </dl>
+        </aside>
+      </div>
+    </div>
+  </header>
+
+  <div class="autonomy-strip" aria-label="Config management principles">
+    <div class="autonomy-point"><span class="autonomy-mark">01</span><span><strong>Standards stay authoritative</strong><span>Governed documents remain the source for security and operational intent.</span></span></div>
+    <div class="autonomy-point"><span class="autonomy-mark">02</span><span><strong>Automation stays reusable</strong><span>AI assists playbook generation; Ansible carries controlled implementation.</span></span></div>
+    <div class="autonomy-point"><span class="autonomy-mark">03</span><span><strong>Evidence closes the loop</strong><span>Execution data supports tracking, KPI visibility and governance review.</span></span></div>
+  </div>
+
+  <main id="config-main">
+    <section class="detail-section">
+      <div class="shell">
+        <div class="detail-section-head">
+          <h2>Govern. Generate. Execute. Prove.</h2>
+          <p>This is the Config Management workflow: one governed lifecycle that carries configuration intent from approved documents to verified assets. Select any stage to inspect its purpose, control boundary and handoff.</p>
+        </div>
+        <div class="patch-journey" data-config-journey>
+          <div class="patch-journey-head">
+            <span><strong>Configuration Journey</strong><span>A living view of the governed automation workflow</span></span>
+            <span class="journey-status">WORKFLOW READY</span>
+          </div>
+          <div class="journey-canvas">
+            <div class="journey-workflow" aria-label="Configuration Management workflow map">
+              <div class="journey-flow-legend" aria-label="Workflow legend"><span class="legend-complete"><i></i>Completed route</span><span class="legend-upcoming"><i></i>Upcoming route</span><span class="legend-input"><i></i>Governed input or evidence</span><span class="legend-ansible"><i></i>Ansible automation</span><span class="legend-ai"><i><svg viewBox="0 0 36 36" aria-hidden="true" focusable="false"><path d="M18 2 L21.6 13.4 L33 17 L21.6 20.6 L18 32 L14.4 20.6 L3 17 L14.4 13.4 Z" fill="#f6c227" stroke="#061e46" stroke-width="1.6" stroke-linejoin="round"/><path d="M28.5 25 L29.6 27.5 L32 28.5 L29.6 29.5 L28.5 32 L27.4 29.5 L25 28.5 L27.4 27.5 Z" fill="#f6c227" stroke="#061e46" stroke-width="1.1" stroke-linejoin="round"/><circle cx="7" cy="29" r="1.8" fill="#061e46"/></svg></i>AI-augmented</span><span class="legend-playbook"><i></i>Automate manual steps or bring your existing playbook</span></div>
+              <svg class="journey-connectors" viewBox="0 0 1200 780" preserveAspectRatio="none" aria-hidden="true">
+                <path class="journey-support-route" data-flow-to="1" d="M474 158 V184 H252 V210" />
+                <path class="journey-support-route" data-flow-to="2" d="M474 158 V184 H618 V210" />
+                <path class="journey-support-route" data-flow-to="3" d="M252 294 V330 H435 V350" />
+                <path class="journey-support-route" data-flow-to="3" d="M618 294 V330 H435 V350" />
+                <path class="journey-route" data-flow-to="4" d="M435 434 V458" />
+                <path class="journey-support-route" data-flow-to="8" d="M522 500 H690" />
+                <path class="journey-support-route" data-flow-to="9" d="M870 500 H930" />
+                <path class="journey-route" data-flow-to="6" d="M435 542 V586" />
+                <path class="journey-route" data-flow-to="6" d="M222 628 H348" />
+                <path class="journey-route" data-flow-to="7" d="M564 628 H690" />
+              </svg>
+              <svg class="journey-connectors journey-connectors-mobile" viewBox="0 0 360 1184" preserveAspectRatio="none" aria-hidden="true">
+                <path class="journey-support-route" data-flow-to="1" d="M180 180 V198 H80 V214" />
+                <path class="journey-support-route" data-flow-to="2" d="M180 180 V198 H280 V214" />
+                <path class="journey-support-route" data-flow-to="3" d="M80 306 V332 H180 V356" />
+                <path class="journey-support-route" data-flow-to="3" d="M280 306 V332 H180 V356" />
+                <path class="journey-route" data-flow-to="4" d="M180 448 V466 H104 V482" />
+                <path class="journey-support-route" data-flow-to="8" d="M180 528 H198" />
+                <path class="journey-support-route" data-flow-to="9" d="M274 574 V614" />
+                <path class="journey-route" data-flow-to="6" d="M104 574 V708 H274 V752" />
+                <path class="journey-route" data-flow-to="6" d="M162 798 H198" />
+                <path class="journey-route" data-flow-to="7" d="M274 844 V862 H180 V880" />
+              </svg>
+              <div class="workflow-inner">
+                <button class="journey-flow-node" style="--node-x:31.5%;--node-y:74px;width:26%" type="button" aria-selected="true" data-complete="false" data-index="0"><span class="node-state">01</span><span class="node-copy"><small>SOURCE OF AUTHORITY</small><strong>Document Governance Process</strong><em>Approve and maintain configuration intent</em></span></button>
+                <button class="journey-flow-node config-input" style="--node-x:12%;--node-y:210px;width:18%" type="button" aria-selected="false" data-complete="false" data-index="1"><span class="node-state">02</span><span class="node-copy"><small>SECURITY INPUT</small><strong>Security Baselines (TSS)</strong><em>Secure-state definitions</em></span></button>
+                <button class="journey-flow-node config-input" style="--node-x:43%;--node-y:210px;width:18%" type="button" aria-selected="false" data-complete="false" data-index="2"><span class="node-state">03</span><span class="node-copy"><small>OPERATING INPUT</small><strong>Operational Baselines (Configs)</strong><em>Operating-state definitions</em></span></button>
+                <button class="journey-flow-node" style="--node-x:30%;--node-y:350px;width:17.5%" type="button" aria-selected="false" data-complete="false" data-index="3"><span class="node-state">04</span><span class="node-copy"><small>AI-AUGMENTED</small><strong>Playbook Generation</strong><em>Governed intent becomes automation</em></span><span class="ai-mark" aria-hidden="true"><svg viewBox="0 0 36 36" focusable="false"><path d="M18 2 L21.6 13.4 L33 17 L21.6 20.6 L18 32 L14.4 20.6 L3 17 L14.4 13.4 Z" fill="#f6c227" stroke="#061e46" stroke-width="1.6" stroke-linejoin="round"/><path d="M28.5 25 L29.6 27.5 L32 28.5 L29.6 29.5 L28.5 32 L27.4 29.5 L25 28.5 L27.4 27.5 Z" fill="#f6c227" stroke="#061e46" stroke-width="1.1" stroke-linejoin="round"/><circle cx="7" cy="29" r="1.8" fill="#061e46"/></svg></span></button>
+                <button class="journey-flow-node ansible-artifact" style="--node-x:30%;--node-y:458px;width:17.5%" type="button" aria-selected="false" data-complete="false" data-index="4"><span class="node-state">05</span><span class="node-copy"><small>AUTOMATION ARTIFACT</small><strong>Ansible Playbooks</strong><em>Reusable implementation procedures</em></span><span class="ai-mark" aria-hidden="true"><svg viewBox="0 0 36 36" focusable="false"><path d="M18 2 L21.6 13.4 L33 17 L21.6 20.6 L18 32 L14.4 20.6 L3 17 L14.4 13.4 Z" fill="#f6c227" stroke="#061e46" stroke-width="1.6" stroke-linejoin="round"/><path d="M28.5 25 L29.6 27.5 L32 28.5 L29.6 29.5 L28.5 32 L27.4 29.5 L25 28.5 L27.4 27.5 Z" fill="#f6c227" stroke="#061e46" stroke-width="1.1" stroke-linejoin="round"/><circle cx="7" cy="29" r="1.8" fill="#061e46"/></svg></span></button>
+                <button class="journey-flow-node" style="--node-x:3%;--node-y:586px;width:15.5%" type="button" aria-selected="false" data-complete="false" data-index="5"><span class="node-state">06</span><span class="node-copy"><small>TIME &amp; SCOPE</small><strong>Scheduling</strong><em>Choose the execution window</em></span></button>
+                <button class="journey-flow-node" style="--node-x:29%;--node-y:586px;width:18%" type="button" aria-selected="false" data-complete="false" data-index="6"><span class="node-state">07</span><span class="node-copy"><small>EXECUTION PLANE</small><strong>Ansible Automation Platform</strong><em>Run the approved playbook</em></span></button>
+                <button class="journey-flow-node" style="--node-x:57.5%;--node-y:586px;width:18%" type="button" aria-selected="false" data-complete="false" data-index="7"><span class="node-state">08</span><span class="node-copy"><small>TARGET SCOPE</small><strong>Assets</strong><em>Receive governed configuration</em></span></button>
+                <button class="journey-flow-node" style="--node-x:57.5%;--node-y:458px;width:15%" type="button" aria-selected="false" data-complete="false" data-index="8"><span class="node-state">09</span><span class="node-copy"><small>EVIDENCE</small><strong>Data Store</strong><em>Retain lifecycle results</em></span></button>
+                <button class="journey-flow-node" style="--node-x:77.5%;--node-y:458px;width:20.5%" type="button" aria-selected="false" data-complete="false" data-index="9"><span class="node-state">10</span><span class="node-copy"><small>ASSURANCE</small><strong>KPIs / Tracking / Governance</strong><em>Measure posture, progress and control</em></span></button>
+              </div>
+              <div class="journey-inline-enabler playbook-enabler" data-enabler="playbooks" style="--node-x:16%;--node-y:458px"><small>BRING YOUR PLAYBOOKS</small><strong>Ansible · Playbooks</strong><em>Bring existing automation into the governed cycle</em></div>
+              <div class="journey-inline-enabler playbook-enabler" data-enabler="execution" style="--node-x:29%;--node-y:686px"><small>BRING YOUR PLAYBOOKS</small><strong>Ansible · Execution</strong><em>Platform-owned execution procedure</em></div>
+            </div>
+          </div>
+          <div class="journey-stage-content">
+            <div class="orchestration-detail" aria-live="polite">
+              <div class="orchestration-detail-top"><span class="stage-position">STAGE 01 / 10</span><button class="lifecycle-play" type="button" aria-pressed="false">Play lifecycle</button></div>
+              <h3>Govern the source documents</h3>
+              <p>The Document Governance Process establishes the approved source of configuration intent and controls how baseline content is created, reviewed and maintained before automation begins.</p>
+              <div class="stage-expansion">
+                <article><span>HOW IT WORKS</span><strong>Maintain authoritative configuration requirements and route approved content into security and operational baseline streams.</strong></article>
+                <article><span>HUMAN / POLICY GATE</span><strong>Only governed baseline content should move into playbook generation; draft or superseded intent remains outside the execution path.</strong></article>
+                <article><span>OUTPUT &amp; HANDOFF</span><strong>Approved baseline inputs with clear ownership and lineage are ready for implementation.</strong></article>
+              </div>
+              <dl class="stage-facts"><div class="stage-fact"><dt>Ownership</dt><dd>Document and control owners maintain approved configuration intent.</dd></div><div class="stage-fact"><dt>Produced</dt><dd>Governed source material for security and operational baselines.</dd></div></dl>
+              <p class="stage-systems">DOCUMENT GOVERNANCE · VERSION CONTROL · APPROVAL HISTORY</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="detail-section alt">
+      <div class="shell">
+        <div class="detail-section-head"><h2>Governed automation without a black box.</h2><p>Every playbook in this lifecycle keeps its lineage to the baseline and the document behind it. Generated automation stays reviewable, execution stays on approved playbooks, and evidence returns through one visible route.</p></div>
+        <div class="autonomy-model">
+          <div class="autonomy-definition"><span class="panel-kicker">BASELINES → STATE</span><h3>From approved standards to verifiable state.</h3><p>AI-augmented generation interprets baseline statements into reviewable Ansible tasks; scheduling and the Ansible Automation Platform carry approved playbooks into execution; the Data Store records the lifecycle so outcomes stay verifiable.</p></div>
+          <div class="autonomy-path"><strong>The governed configuration path</strong><div class="autonomy-path-line" aria-label="The governed configuration path"><div class="autonomy-path-step"><i>01</i><span>Govern intent</span></div><div class="autonomy-path-step"><i>02</i><span>Converge baselines</span></div><div class="autonomy-path-step"><i>03</i><span>Generate playbooks</span></div><div class="autonomy-path-step"><i>04</i><span>Execute &amp; configure</span></div><div class="autonomy-path-step"><i>05</i><span>Return evidence</span></div></div></div>
+        </div>
+      </div>
+    </section>
+    <section class="detail-section">
+      <div class="shell">
+        <div class="detail-section-head"><h2>Built to survive the waits.</h2><p>Configuration work spans documents, baselines, playbooks and execution windows. The journey preserves baseline lineage across every hand-off instead of treating each run like a standalone event.</p></div>
+        <div class="product-spine">
+          <article class="spine-item"><span class="spine-mark">FLOW</span><div><h3>Baseline continuity</h3><p>Governed lineage from source documents through baselines and playbooks to recorded evidence; nothing enters the execution path without approved ancestry.</p></div></article>
+          <article class="spine-item"><span class="spine-mark">RUN</span><div><h3>Reusable Ansible playbooks</h3><p>Versioned, tested playbooks carry the approved implementation procedure; generation assists authoring, but approval gates every run.</p></div></article>
+          <article class="spine-item"><span class="spine-mark">TIME</span><div><h3>Controlled scheduling</h3><p>Each run binds an approved playbook to the intended scope, timing and execution conditions.</p></div></article>
+          <article class="spine-item"><span class="spine-mark">PROOF</span><div><h3>Evidence and KPIs</h3><p>The Data Store keeps the lifecycle record that feeds KPI visibility, tracking and governance review.</p></div></article>
+        </div>
+      </div>
+    </section>
+    <section class="detail-section">
+      <div class="shell"><div class="page-cta"><div><h2>Watch the governed lifecycle end to end.</h2><p>Play the Configuration Journey from governed documents through execution to verified evidence.</p></div><a class="button primary" href="#config-main" data-play-journey>Play the lifecycle →</a></div></div>
+    </section>
+  </main>
+  <footer class="route-footer"><div class="shell footer-inner"><span>Config Management Workflow</span><span>Baselines → Playbooks → Evidence</span></div></footer>
+</div>
+<script>
+(function(){
+  var journey=document.querySelector('[data-config-journey]');
+  if(!journey)return;
+  var nodes=Array.prototype.slice.call(journey.querySelectorAll('.journey-flow-node'));
+  var routes=Array.prototype.slice.call(journey.querySelectorAll('.journey-route,.journey-support-route'));
+  var position=journey.querySelector('.stage-position');
+  var heading=journey.querySelector('.orchestration-detail h3');
+  var summary=journey.querySelector('.orchestration-detail > p');
+  var detailCards=journey.querySelectorAll('.stage-expansion strong');
+  var facts=journey.querySelectorAll('.stage-fact dd');
+  var systems=journey.querySelector('.stage-systems');
+  var play=journey.querySelector('.lifecycle-play');
+  var cta=document.querySelector('[data-play-journey]');
+  var timer=null;
+  var stages=[
+    {title:'Govern the source documents',summary:'The Document Governance Process establishes the approved source of configuration intent and controls how baseline content is created, reviewed and maintained before automation begins.',work:'Maintain authoritative configuration requirements and route approved content into security and operational baseline streams.',gate:'Only governed baseline content should move into playbook generation; draft or superseded intent remains outside the execution path.',handoff:'Approved baseline inputs with clear ownership and lineage are ready for implementation.',owner:'Document and control owners maintain approved configuration intent.',output:'Governed source material for security and operational baselines.',systems:'DOCUMENT GOVERNANCE · VERSION CONTROL · APPROVAL HISTORY'},
+    {title:'Define the security baseline',summary:'Security Baselines (TSS) express the secure-state requirements that the generated automation must implement without changing the underlying control intent.',work:'Translate the approved security standard into explicit, testable configuration statements and expected-state criteria.',gate:'The baseline remains traceable to its governed source, accountable owner and approved version.',handoff:'A machine-actionable security baseline enters the shared generation stage.',owner:'Security baseline owners define and approve the required secure state.',output:'TSS-aligned controls and expected-state criteria.',systems:'TSS · SECURITY BASELINES · CONTROL TRACEABILITY'},
+    {title:'Define the operational baseline',summary:'Operational Baselines (Configs) capture the settings required for reliable operation and feed them into the same generation path as security requirements.',work:'Structure approved operating configurations, dependencies and expected outcomes for automation.',gate:'Operational intent must be explicit enough to distinguish a compliant state from a configuration drift or failed result.',handoff:'A governed operational baseline joins the security baseline for playbook generation.',owner:'Platform and service owners maintain operational configuration requirements.',output:'Approved operational settings and expected-state criteria.',systems:'OPERATIONAL BASELINES · CONFIGS · SERVICE OWNERSHIP'},
+    {title:'Generate automation from governed intent',summary:'AI-augmented playbook generation converts baseline requirements into a proposed Ansible implementation while preserving the connection to the source controls.',work:'Interpret baseline statements, map them to Ansible tasks and assemble reusable playbook logic for review.',gate:'AI assists authoring; generated automation still requires validation against the approved source and intended target context.',handoff:'A reviewable playbook candidate moves into the managed Ansible playbook library.',owner:'Automation engineering reviews and accepts generated playbook logic.',output:'Proposed Ansible tasks with baseline traceability.',systems:'AI-AUGMENTED GENERATION · BASELINE CONTEXT · REVIEWABLE AUTOMATION'},
+    {title:'Manage reusable Ansible playbooks',summary:'Ansible Playbooks hold the approved implementation procedure used by the execution path and supply lifecycle evidence to the Data Store.',work:'Version, test and maintain playbooks that apply the required configuration predictably across supported target types.',gate:'Only an approved playbook version is eligible for scheduled execution.',handoff:'The selected playbook is available to the Ansible Automation Platform and linked to its baseline lineage.',owner:'Automation and platform teams own playbook quality and lifecycle.',output:'Reusable, versioned configuration automation.',systems:'ANSIBLE PLAYBOOKS · VERSIONING · TESTING · BASELINE LINEAGE'},
+    {title:'Schedule the controlled execution',summary:'Scheduling contributes the authorized execution window and target context that the Ansible Automation Platform uses to run the playbook.',work:'Bind an approved playbook to the intended scope, timing and execution conditions.',gate:'Missing scope, timing or approval keeps the run outside the executable path.',handoff:'An execution-ready schedule reaches the automation platform.',owner:'Operations and service owners define the permitted execution window.',output:'Time-bound run plan with selected playbook and target scope.',systems:'SCHEDULING · TARGET SCOPE · EXECUTION WINDOW'},
+    {title:'Execute through Ansible Automation Platform',summary:'Ansible Automation Platform coordinates the selected playbook run against the scheduled asset scope and returns structured execution results.',work:'Launch the approved playbook, monitor task-level progress and retain run status, output and exceptions.',gate:'The platform executes only the selected version against the authorized scope and window.',handoff:'Configuration actions reach assets while results flow into the evidence route.',owner:'The automation platform runs the procedure; platform owners remain accountable for the playbook.',output:'Task-level run status, logs and exception signals.',systems:'ANSIBLE AUTOMATION PLATFORM · JOB CONTROL · EXECUTION EVIDENCE'},
+    {title:'Apply configuration to assets',summary:'Assets receive the governed configuration through the approved playbook and become the measurable target state of the workflow.',work:'Apply the scheduled configuration actions to the intended infrastructure scope.',gate:'Targets outside the authorized scope are excluded; failed or unreachable assets remain visible as exceptions.',handoff:'Observed target outcomes return to tracking and governance through the execution record.',owner:'Asset and service owners are accountable for target health and exception resolution.',output:'Configured, failed, skipped or unreachable status for each target.',systems:'ASSETS · TARGET STATE · RESULT RECONCILIATION'},
+    {title:'Retain lifecycle evidence',summary:'The Data Store preserves baseline lineage, generated artifacts and execution results so configuration posture can be reviewed as one connected record.',work:'Collect playbook version, schedule, target scope, run results and exception context into durable evidence.',gate:'Incomplete or contradictory records stay visible rather than being summarized as successful.',handoff:'Structured evidence becomes available to KPIs, tracking and governance.',owner:'Configuration Management maintains the evidence model and record continuity.',output:'Connected configuration lifecycle evidence.',systems:'DATA STORE · PLAYBOOK LINEAGE · EXECUTION RESULTS · EXCEPTIONS'},
+    {title:'Track posture and govern outcomes',summary:'KPIs, tracking and governance turn stored evidence into visibility: what was intended, what ran, what changed and where attention is required.',work:'Measure completion, exceptions and configuration outcomes across the governed lifecycle.',gate:'Governance views should distinguish verified outcomes from missing, failed or exempt results.',handoff:'Actionable configuration insight returns to owners and informs the next document or baseline revision.',owner:'Governance and control owners review posture and direct follow-up.',output:'KPI visibility, tracking records and governance actions.',systems:'KPIs · TRACKING · GOVERNANCE · CLOSED-LOOP IMPROVEMENT'}
+  ];
+  function select(index){
+    if(index<0)index=stages.length-1;
+    if(index>=stages.length)index=0;
+    nodes.forEach(function(node){var i=Number(node.dataset.index);node.setAttribute('aria-selected',i===index?'true':'false');node.dataset.complete=i<index?'true':'false'});
+    routes.forEach(function(route){route.dataset.active=Number(route.dataset.flowTo)<=index?'true':'false'});
+    var stage=stages[index];
+    position.textContent='STAGE '+String(index+1).padStart(2,'0')+' / 10';
+    heading.textContent=stage.title;
+    summary.textContent=stage.summary;
+    detailCards[0].textContent=stage.work;detailCards[1].textContent=stage.gate;detailCards[2].textContent=stage.handoff;
+    facts[0].textContent=stage.owner;facts[1].textContent=stage.output;systems.textContent=stage.systems;
+    journey.dataset.activeIndex=String(index);
+  }
+  function stop(){if(timer){clearInterval(timer);timer=null}play.setAttribute('aria-pressed','false');play.textContent='Play lifecycle'}
+  function start(){if(timer)stop();play.setAttribute('aria-pressed','true');play.textContent='Pause lifecycle';var current=Number(journey.dataset.activeIndex||0);timer=setInterval(function(){current=(current+1)%stages.length;select(current)},1750)}
+  nodes.forEach(function(node){node.addEventListener('click',function(){stop();select(Number(node.dataset.index));journey.querySelector('.orchestration-detail').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'nearest'})})});
+  play.addEventListener('click',function(){if(timer){stop();return}start()});
+  if(cta){cta.addEventListener('click',function(e){e.preventDefault();journey.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});select(0);start()})}
+  select(0);
+})();
+</script>
+</body>
+</html>
