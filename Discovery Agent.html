@@ -145,7 +145,15 @@
     .conn-flow { stroke: var(--green-dark); stroke-width: 2; stroke-dasharray: 6 5; stroke-linecap: round; fill: none; }
     .conn-flow.done { stroke: #33506e; stroke-dasharray: none; }
     .conn-feed { stroke: #7e97ae; stroke-width: 1.8; stroke-dasharray: 1.5 4.5; stroke-linecap: round; fill: none; }
+    .conn-report { stroke: #33506e; stroke-width: 2; stroke-dasharray: 6 5; stroke-linecap: round; fill: none; }
     .conn-api { stroke: var(--gold-line); stroke-width: 2; fill: none; }
+    .conn-feedback { stroke: var(--gold-line); stroke-width: 2; stroke-dasharray: 6 5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    .feedback-label {
+      font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600;
+      letter-spacing: .04em; fill: #7a5d08;
+      paint-order: stroke; stroke: #f7fafc; stroke-width: 3px; stroke-linejoin: round;
+    }
+    .legend-arrow { display: block; flex: 0 0 auto; }
 
     .flow-grid {
       position: relative; z-index: 1;
@@ -195,8 +203,9 @@
     .support-box.dotted { border: 1.5px dotted #8aa0b8; }
     .support-box.gold { border: 1.5px solid var(--gold-line); background: #fdf8e7; }
     .support-source { grid-column: 1; grid-row: 1; }
-    .support-ai { grid-column: 6; grid-row: 1; }
+    .support-kb { grid-column: 6; grid-row: 1; }
     .support-api { grid-column: 3; grid-row: 3; }
+    .support-clickhouse { grid-column: 6; grid-row: 3; }
     .support-eyebrow {
       display: block; margin-bottom: 4px;
       font-family: "IBM Plex Mono", monospace; font-size: 9.5px; font-weight: 600;
@@ -268,9 +277,10 @@
       .support-api { grid-column: 1; grid-row: 5; }
       .stage-card[data-stage="3"] { grid-row: 6; }
       .stage-card[data-stage="4"] { grid-row: 7; }
-      .support-ai { grid-column: 1; grid-row: 8; }
-      .stage-card[data-stage="5"] { grid-row: 9; }
-      .stage-card[data-stage="6"] { grid-row: 10; }
+      .support-clickhouse { grid-column: 1; grid-row: 8; }
+      .support-kb { grid-column: 1; grid-row: 9; }
+      .stage-card[data-stage="5"] { grid-row: 10; }
+      .stage-card[data-stage="6"] { grid-row: 11; }
       .support-box { align-self: stretch; }
       .principles-grid { grid-template-columns: 1fr 1fr; }
     }
@@ -336,6 +346,7 @@
           <div class="legend" aria-label="Canvas legend">
             <span class="legend-item"><span class="legend-line solid" aria-hidden="true"></span>Completed route</span>
             <span class="legend-item"><span class="legend-line dashed" aria-hidden="true"></span>Upcoming route</span>
+            <span class="legend-item"><svg class="legend-arrow" width="34" height="10" viewBox="0 0 34 10" aria-hidden="true" focusable="false"><path d="M1 5 H24" stroke="#c2940f" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round" fill="none"/><path d="M24 1.5 L33 5 L24 8.5 Z" fill="#c2940f"/></svg>Feedback loop</span>
             <span class="legend-item"><span class="legend-box" aria-hidden="true"></span>Centrally managed — bring your own commands</span>
           </div>
 
@@ -387,12 +398,17 @@
               <aside class="support-box gold support-api" id="box-api">
                 <span class="support-eyebrow">BRING YOUR COMMANDS</span>
                 <span class="support-title">Central API</span>
-                <span class="support-desc">Add commands on the fly — effective at next scan</span>
+                <span class="support-desc">Running processes, packages &amp; identification commands — updated on the fly, effective at next scan</span>
               </aside>
-              <aside class="support-box dotted support-ai" id="box-ai">
-                <span class="support-eyebrow">AI · NORMALIZE</span>
-                <span class="support-title">AI Normalization</span>
-                <span class="support-desc">Signals → identify → version → governed record</span>
+              <aside class="support-box dotted support-kb" id="box-kb">
+                <span class="support-eyebrow">NORMALIZE · KB + LLM</span>
+                <span class="support-title">KB + LLM</span>
+                <span class="support-desc">MongoDB signatures first, LLM for unknowns</span>
+              </aside>
+              <aside class="support-box dotted support-clickhouse" id="box-clickhouse">
+                <span class="support-eyebrow">REPORTING · CLICKHOUSE</span>
+                <span class="support-title">ClickHouse</span>
+                <span class="support-desc">Scan results reporting — feeds Inventory</span>
               </aside>
             </div>
           </div>
@@ -538,6 +554,23 @@
     svg.setAttribute('height', h);
     while (svg.firstChild) svg.removeChild(svg.firstChild);
 
+    /* Arrowhead for the feedback loop */
+    var defs = document.createElementNS(SVGNS, 'defs');
+    var marker = document.createElementNS(SVGNS, 'marker');
+    marker.setAttribute('id', 'fbArrow');
+    marker.setAttribute('viewBox', '0 0 10 10');
+    marker.setAttribute('refX', '8.5');
+    marker.setAttribute('refY', '5');
+    marker.setAttribute('markerWidth', '7');
+    marker.setAttribute('markerHeight', '7');
+    marker.setAttribute('orient', 'auto-start-reverse');
+    var markerPath = document.createElementNS(SVGNS, 'path');
+    markerPath.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+    markerPath.setAttribute('fill', '#c2940f');
+    marker.appendChild(markerPath);
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
     var cardRects = cards.map(function (c) { return relRect(c, origin); });
     var links = [];
     for (var i = 0; i < cardRects.length - 1; i++) {
@@ -545,10 +578,19 @@
     }
     var source = document.getElementById('box-source');
     var api = document.getElementById('box-api');
-    var ai = document.getElementById('box-ai');
+    var kb = document.getElementById('box-kb');
+    var clickhouse = document.getElementById('box-clickhouse');
     if (source) links.push({ a: relRect(source, origin), b: cardRects[0], cls: 'conn-feed' });
     if (api) links.push({ a: relRect(api, origin), b: cardRects[2], cls: 'conn-api' });
-    if (ai) links.push({ a: relRect(ai, origin), b: cardRects[5], cls: 'conn-feed' });
+    if (kb) links.push({ a: relRect(kb, origin), b: cardRects[5], cls: 'conn-feed' });
+    /* Reporting path: every scan result lands in ClickHouse, which feeds
+       the Inventory card (07). Both segments are computed from rendered
+       positions, so they anchor on the box/card edges at any viewport. */
+    if (clickhouse) {
+      var chR = relRect(clickhouse, origin);
+      links.push({ a: cardRects[4], b: chR, cls: 'conn-report' });
+      links.push({ a: chR, b: cardRects[6], cls: 'conn-report' });
+    }
 
     links.forEach(function (link) {
       var pts = anchorPair(link.a, link.b);
@@ -558,6 +600,53 @@
       if (typeof link.seg === 'number') path.setAttribute('data-seg', link.seg);
       svg.appendChild(path);
     });
+
+    /* Feedback loop: Normalize (06) -> Central API. Normalization output
+       reveals gaps — improper versions, unclear signals — and the Central
+       API refines the command set so the next scan fills them. Both ends
+       are computed from the rendered boxes, so the arrow stays anchored
+       at every viewport size. */
+    if (api) {
+      var apiR = relRect(api, origin);
+      var normR = cardRects[5];
+      var fb = document.createElementNS(SVGNS, 'path');
+      fb.setAttribute('class', 'conn-feedback');
+      fb.setAttribute('marker-end', 'url(#fbArrow)');
+      var fbLabel = document.createElementNS(SVGNS, 'text');
+      fbLabel.setAttribute('class', 'feedback-label');
+      fbLabel.textContent = 'Enhance commands for next run';
+      fbLabel.setAttribute('text-anchor', 'middle');
+      if (apiR.top >= normR.bottom - 2) {
+        /* Desktop: drop out of Normalize, run left under the card row,
+           then down into the top of the Central API box. */
+        var dropY = normR.bottom + 16;
+        var startX = normR.left + normR.width / 2;
+        var entryX = apiR.left + apiR.width * 0.75;
+        fb.setAttribute('d',
+          'M ' + startX + ' ' + normR.bottom +
+          ' L ' + startX + ' ' + dropY +
+          ' L ' + entryX + ' ' + dropY +
+          ' L ' + entryX + ' ' + (apiR.top - 2));
+        fbLabel.setAttribute('x', (startX + entryX) / 2);
+        fbLabel.setAttribute('y', dropY + 15);
+      } else {
+        /* Stacked layout: run up the right-hand side into the box. */
+        var sideX = Math.max(normR.right, apiR.right) + 14;
+        var startY = normR.top + normR.height / 2;
+        var endY = apiR.top + apiR.height / 2;
+        var labelMidY = (startY + endY) / 2;
+        fb.setAttribute('d',
+          'M ' + normR.right + ' ' + startY +
+          ' L ' + sideX + ' ' + startY +
+          ' L ' + sideX + ' ' + endY +
+          ' L ' + (apiR.right + 2) + ' ' + endY);
+        fbLabel.setAttribute('x', sideX + 5);
+        fbLabel.setAttribute('y', labelMidY);
+        fbLabel.setAttribute('transform', 'rotate(-90 ' + (sideX + 5) + ' ' + labelMidY + ')');
+      }
+      svg.appendChild(fb);
+      svg.appendChild(fbLabel);
+    }
     applyRouteState();
   }
 
